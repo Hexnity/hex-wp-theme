@@ -1,0 +1,27 @@
+/**
+ * Front-end Tailwind entry point. Compiled to ../tailwind.css via
+ * `npm run build:css` (see package.json). Preflight (Tailwind's base
+ * reset) is included here — this build fully controls the front end.
+ *
+ * Deliberately does NOT import ./theme.css — the hexnity brand
+ * palette is admin-only (see features/brand-styling.md); the front
+ * end stays on Tailwind's default neutral gray scale.
+ *
+ * @package Hex
+ */
+
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "./site-theme.css";
+
+@source "../../../*.php";
+@source "../../../template-parts/*.php";
+
+/* Respect reduced-motion for the handful of Animate.css entrance
+   animations used on templates (see assets/vendor/animate.min.css). */
+@media (prefers-reduced-motion: reduce) {
+	.animate__animated {
+		animation-duration: 1ms !important;
+		animation-iteration-count: 1 !important;
+	}
+}

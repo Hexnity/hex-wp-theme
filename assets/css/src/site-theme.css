@@ -1,0 +1,491 @@
+/**
+ * The site's admin-configurable design tokens (Theme Options page) —
+ * ~146 fields across 12 groups. Every token here is defined as
+ * `var(--hex-{key}, {default})` — pointing at a runtime CSS custom
+ * property that inc/style-settings.php prints in <head> from the
+ * saved options, falling back to the hardcoded default when nothing's
+ * been saved (or a value was rejected as unsafe). This indirection is
+ * what makes a change in the Theme Options admin page apply on the
+ * front end immediately, with no rebuild: Tailwind bakes in a
+ * reference to the runtime variable, not the value itself.
+ *
+ * Every @theme name here is deliberately distinct from Tailwind's own
+ * default token names — EXCEPT the "Global" radius scale
+ * (--radius-sm/md/lg), which deliberately DOES override Tailwind's
+ * built-in rounded-sm/md/lg utilities everywhere they're used,
+ * site-wide, the way YOOtheme's own global radius setting works.
+ *
+ * See features/design-system.md for the full reference on which
+ * class to use for what.
+ *
+ * @package Hex
+ */
+
+@theme {
+	/* Typography: heading levels (size/line-height/letter-spacing/weight). */
+	--text-h1: var(--hex-h1-size, 2.5rem);
+	--text-h2: var(--hex-h2-size, 2rem);
+	--text-h3: var(--hex-h3-size, 1.75rem);
+	--text-h4: var(--hex-h4-size, 1.5rem);
+	--text-h5: var(--hex-h5-size, 1.25rem);
+	--text-h6: var(--hex-h6-size, 1rem);
+	--leading-h1: var(--hex-h1-line-height, 1.2);
+	--leading-h2: var(--hex-h2-line-height, 1.25);
+	--leading-h3: var(--hex-h3-line-height, 1.3);
+	--leading-h4: var(--hex-h4-line-height, 1.35);
+	--leading-h5: var(--hex-h5-line-height, 1.4);
+	--leading-h6: var(--hex-h6-line-height, 1.4);
+	--tracking-h1: var(--hex-h1-letter-spacing, -0.02em);
+	--tracking-h2: var(--hex-h2-letter-spacing, -0.01em);
+	--tracking-h3: var(--hex-h3-letter-spacing, -0.01em);
+	--tracking-h4: var(--hex-h4-letter-spacing, 0);
+	--tracking-h5: var(--hex-h5-letter-spacing, 0);
+	--tracking-h6: var(--hex-h6-letter-spacing, 0.02em);
+	--font-weight-h1: var(--hex-h1-weight, 700);
+	--font-weight-h2: var(--hex-h2-weight, 700);
+	--font-weight-h3: var(--hex-h3-weight, 600);
+	--font-weight-h4: var(--hex-h4-weight, 600);
+	--font-weight-h5: var(--hex-h5-weight, 600);
+	--font-weight-h6: var(--hex-h6-weight, 600);
+
+	/* Typography: body-level text styles. */
+	--text-body: var(--hex-body-size, 1rem);
+	--text-lead: var(--hex-lead-size, 1.25rem);
+	--text-large: var(--hex-large-size, 1.125rem);
+	--text-small: var(--hex-small-size, 0.875rem);
+	--text-meta: var(--hex-meta-size, 0.8125rem);
+	--leading-body: var(--hex-body-line-height, 1.6);
+	--leading-lead: var(--hex-lead-line-height, 1.6);
+	--leading-large: var(--hex-large-line-height, 1.6);
+	--leading-small: var(--hex-small-line-height, 1.5);
+	--leading-meta: var(--hex-meta-line-height, 1.4);
+	--tracking-meta: var(--hex-meta-letter-spacing, 0.03em);
+	--font-weight-meta: var(--hex-meta-weight, 600);
+
+	/* Spacing. */
+	--spacing-xs: var(--hex-spacing-xs, 0.5rem);
+	--spacing-sm: var(--hex-spacing-sm, 1rem);
+	--spacing-md: var(--hex-spacing-md, 1.5rem);
+	--spacing-lg: var(--hex-spacing-lg, 2rem);
+	--spacing-xl: var(--hex-spacing-xl, 3rem);
+	--spacing-2xl: var(--hex-spacing-2xl, 4rem);
+	--spacing-section-sm: var(--hex-section-padding-sm, 2rem);
+	--spacing-section-md: var(--hex-section-padding-md, 3rem);
+	--spacing-section-lg: var(--hex-section-padding-lg, 4rem);
+	--spacing-section-xl: var(--hex-section-padding-xl, 6rem);
+
+	/* Colors: full palette. */
+	--color-site-primary: var(--hex-color-primary, #2563eb);
+	--color-site-secondary: var(--hex-color-secondary, #475569);
+	--color-site-tertiary: var(--hex-color-tertiary, #7c3aed);
+	--color-site-accent: var(--hex-color-accent, #16a34a);
+	--color-site-success: var(--hex-color-success, #16a34a);
+	--color-site-warning: var(--hex-color-warning, #d97706);
+	--color-site-danger: var(--hex-color-danger, #dc2626);
+	--color-site-info: var(--hex-color-info, #0ea5e9);
+	--color-site-muted: var(--hex-color-muted, #f1f5f9);
+	--color-site-emphasis: var(--hex-color-emphasis, #111827);
+	--color-site-body-bg: var(--hex-color-body-background, #ffffff);
+	--color-site-body-text: var(--hex-color-body-text, #1f2937);
+	--color-site-inverse-bg: var(--hex-color-inverse-background, #111827);
+	--color-site-inverse-text: var(--hex-color-inverse-text, #f9fafb);
+	--color-site-border: var(--hex-color-border, #e5e7eb);
+
+	/* Sections: background variants. */
+	--color-site-section-default: var(--hex-section-background-default, #ffffff);
+	--color-site-section-muted: var(--hex-section-background-muted, #f8fafc);
+	--color-site-section-primary: var(--hex-section-background-primary, #2563eb);
+	--color-site-section-secondary: var(--hex-section-background-secondary, #475569);
+
+	/* Global radius scale — overrides Tailwind's own rounded-sm/md/lg. */
+	--radius-sm: var(--hex-radius-sm, 0.25rem);
+	--radius-md: var(--hex-radius-md, 0.5rem);
+	--radius-lg: var(--hex-radius-lg, 1rem);
+
+	/* Component-specific radius (distinct names, don't touch the global scale above). */
+	--radius-button: var(--hex-button-radius, 0.375rem);
+	--radius-card: var(--hex-card-radius, 0.5rem);
+	--radius-form: var(--hex-form-radius, 0.375rem);
+
+	/* Icon sizes. */
+	--size-icon-sm: var(--hex-icon-size-sm, 1rem);
+	--size-icon-md: var(--hex-icon-size-md, 1.5rem);
+	--size-icon-lg: var(--hex-icon-size-lg, 2rem);
+}
+
+/*
+ * Body-level defaults driven by the color tokens above. Element
+ * selectors, so any more specific utility already in use (e.g. a
+ * one-off bg-white on some wrapper) still wins via ordinary
+ * specificity — this only sets the *default*.
+ */
+@layer base {
+	body {
+		background-color: var(--color-site-body-bg);
+		color: var(--color-site-body-text);
+		font-family: var(--hex-body-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+		font-size: var(--text-body);
+		line-height: var(--leading-body);
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: var(--hex-heading-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+	}
+
+	h1 {
+		font-size: var(--text-h1);
+		line-height: var(--leading-h1);
+		letter-spacing: var(--tracking-h1);
+		font-weight: var(--font-weight-h1);
+		margin-bottom: var(--hex-h1-margin-bottom, 1.5rem);
+	}
+
+	h2 {
+		font-size: var(--text-h2);
+		line-height: var(--leading-h2);
+		letter-spacing: var(--tracking-h2);
+		font-weight: var(--font-weight-h2);
+		margin-bottom: var(--hex-h2-margin-bottom, 1.25rem);
+	}
+
+	h3 {
+		font-size: var(--text-h3);
+		line-height: var(--leading-h3);
+		letter-spacing: var(--tracking-h3);
+		font-weight: var(--font-weight-h3);
+		margin-bottom: var(--hex-h3-margin-bottom, 1rem);
+	}
+
+	h4 {
+		font-size: var(--text-h4);
+		line-height: var(--leading-h4);
+		letter-spacing: var(--tracking-h4);
+		font-weight: var(--font-weight-h4);
+		margin-bottom: var(--hex-h4-margin-bottom, 1rem);
+	}
+
+	h5 {
+		font-size: var(--text-h5);
+		line-height: var(--leading-h5);
+		letter-spacing: var(--tracking-h5);
+		font-weight: var(--font-weight-h5);
+		margin-bottom: var(--hex-h5-margin-bottom, 0.75rem);
+	}
+
+	h6 {
+		font-size: var(--text-h6);
+		line-height: var(--leading-h6);
+		letter-spacing: var(--tracking-h6);
+		font-weight: var(--font-weight-h6);
+		margin-bottom: var(--hex-h6-margin-bottom, 0.75rem);
+	}
+
+	/*
+	 * A global default link color, so any element that already has an
+	 * explicit Tailwind text-color utility (nav links, white text on
+	 * the dark header, etc.) still wins via ordinary specificity —
+	 * this only sets the color for links that don't otherwise specify
+	 * one.
+	 */
+	a {
+		color: var(--hex-link-color, #2563eb);
+	}
+
+	a:hover {
+		color: var(--hex-link-hover-color, #1d4ed8);
+	}
+}
+
+@layer components {
+	/*
+	 * So headings *inside* post/page content (typed by whoever edits a
+	 * post, not just bare <h1>-<h6> tags) also get the full H1-H6
+	 * treatment, not just font-size. Selector pattern matches
+	 * @tailwindcss/typography's own documented technique for
+	 * overriding specific element styles within `.prose`.
+	 */
+	.prose :where(h1):not(:where([class~="not-prose"] *)) {
+		font-size: var(--text-h1);
+		line-height: var(--leading-h1);
+		letter-spacing: var(--tracking-h1);
+		font-weight: var(--font-weight-h1);
+	}
+
+	.prose :where(h2):not(:where([class~="not-prose"] *)) {
+		font-size: var(--text-h2);
+		line-height: var(--leading-h2);
+		letter-spacing: var(--tracking-h2);
+		font-weight: var(--font-weight-h2);
+	}
+
+	.prose :where(h3):not(:where([class~="not-prose"] *)) {
+		font-size: var(--text-h3);
+		line-height: var(--leading-h3);
+		letter-spacing: var(--tracking-h3);
+		font-weight: var(--font-weight-h3);
+	}
+
+	.prose :where(h4):not(:where([class~="not-prose"] *)) {
+		font-size: var(--text-h4);
+		line-height: var(--leading-h4);
+		font-weight: var(--font-weight-h4);
+	}
+
+	.prose :where(h5):not(:where([class~="not-prose"] *)) {
+		font-size: var(--text-h5);
+		font-weight: var(--font-weight-h5);
+	}
+
+	.prose :where(h6):not(:where([class~="not-prose"] *)) {
+		font-size: var(--text-h6);
+		font-weight: var(--font-weight-h6);
+	}
+
+	/* Button component — a real component (like YOOtheme's own button
+	   styles), not raw utility composition, so every button shares one
+	   definition Theme Options actually controls. */
+	.btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+		border-radius: var(--radius-button);
+		padding-inline: var(--hex-button-padding-x, 1.25rem);
+		padding-block: var(--hex-button-padding-y, 0.625rem);
+		background-color: var(--hex-button-default-background, #e5e7eb);
+		color: var(--hex-button-default-color, #111827);
+		font-weight: var(--hex-button-font-weight, 600);
+		line-height: 1.2;
+		text-decoration: none;
+		transition: background-color 150ms ease, color 150ms ease;
+	}
+
+	.btn:hover {
+		background-color: var(--hex-button-default-hover-background, #d1d5db);
+		color: var(--hex-button-default-hover-color, #111827);
+	}
+
+	.btn-primary {
+		background-color: var(--hex-button-primary-background, #2563eb);
+		color: var(--hex-button-primary-color, #fff);
+	}
+
+	.btn-primary:hover {
+		background-color: var(--hex-button-primary-hover-background, #1d4ed8);
+		color: var(--hex-button-primary-hover-color, #fff);
+	}
+
+	.btn-secondary {
+		background-color: var(--hex-button-secondary-background, #475569);
+		color: var(--hex-button-secondary-color, #fff);
+	}
+
+	.btn-secondary:hover {
+		background-color: var(--hex-button-secondary-hover-background, #334155);
+		color: var(--hex-button-secondary-hover-color, #fff);
+	}
+
+	.btn-danger {
+		background-color: var(--hex-button-danger-background, #dc2626);
+		color: var(--hex-button-danger-color, #fff);
+	}
+
+	.btn-danger:hover {
+		background-color: var(--hex-button-danger-hover-background, #b91c1c);
+		color: var(--hex-button-danger-hover-color, #fff);
+	}
+
+	.btn-text {
+		background-color: transparent;
+		color: var(--hex-button-text-color, #2563eb);
+		padding-inline: 0;
+	}
+
+	.btn-text:hover {
+		background-color: transparent;
+		color: var(--hex-button-text-hover-color, #1d4ed8);
+	}
+
+	.btn-outline {
+		background-color: transparent;
+		color: var(--color-site-primary);
+		box-shadow: inset 0 0 0 1px var(--color-site-primary);
+	}
+
+	.btn-outline:hover {
+		background-color: var(--color-site-primary);
+		color: #fff;
+	}
+
+	.btn-sm {
+		padding-inline: var(--hex-button-padding-x-sm, 0.75rem);
+		padding-block: var(--hex-button-padding-y-sm, 0.375rem);
+		font-size: var(--text-small);
+	}
+
+	.btn-lg {
+		padding-inline: var(--hex-button-padding-x-lg, 1.75rem);
+		padding-block: var(--hex-button-padding-y-lg, 0.875rem);
+		font-size: var(--text-large);
+	}
+
+	/* Card component. */
+	.card {
+		background-color: var(--hex-card-background, #fff);
+		border: 1px solid var(--hex-card-border-color, #e5e7eb);
+		border-radius: var(--radius-card);
+		padding: var(--hex-card-padding, 1.5rem);
+		box-shadow: var(--hex-card-shadow, 0 1px 2px 0 rgb(0 0 0 / 0.05));
+		transition: box-shadow 150ms ease;
+	}
+
+	.card:hover {
+		box-shadow: var(--hex-card-shadow-hover, 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1));
+	}
+
+	/* Form fields. */
+	.form-control {
+		display: block;
+		width: 100%;
+		background-color: var(--hex-form-background, #fff);
+		border: 1px solid var(--hex-form-border-color, #d1d5db);
+		border-radius: var(--radius-form);
+		padding-inline: var(--hex-form-padding-x, 0.75rem);
+		padding-block: var(--hex-form-padding-y, 0.5rem);
+	}
+
+	.form-control::placeholder {
+		color: var(--hex-form-placeholder-color, #9ca3af);
+	}
+
+	.form-control:focus {
+		border-color: var(--hex-form-focus-border-color, #2563eb);
+		outline: 2px solid transparent;
+		box-shadow: 0 0 0 1px var(--hex-form-focus-border-color, #2563eb);
+	}
+
+	.form-label {
+		display: block;
+		margin-bottom: 0.375rem;
+		color: var(--hex-form-label-color, #374151);
+		font-weight: 500;
+	}
+
+	/* Tables. */
+	.table-styled {
+		width: 100%;
+		border-collapse: collapse;
+	}
+
+	.table-styled th,
+	.table-styled td {
+		border-bottom: 1px solid var(--hex-table-border-color, #e5e7eb);
+		padding: 0.75rem 1rem;
+		text-align: left;
+	}
+
+	.table-styled thead th {
+		background-color: var(--hex-table-header-background, #f3f4f6);
+		color: var(--hex-table-header-color, #111827);
+	}
+
+	.table-styled tbody tr:nth-child(even) {
+		background-color: var(--hex-table-stripe-background, #f9fafb);
+	}
+
+	/* Alerts. */
+	.alert {
+		border-radius: var(--radius-md);
+		padding: 1rem 1.25rem;
+	}
+
+	.alert-primary {
+		background-color: var(--hex-alert-primary-background, #eff6ff);
+		color: var(--hex-alert-primary-color, #1e3a8a);
+	}
+
+	.alert-success {
+		background-color: var(--hex-alert-success-background, #f0fdf4);
+		color: var(--hex-alert-success-color, #166534);
+	}
+
+	.alert-warning {
+		background-color: var(--hex-alert-warning-background, #fffbeb);
+		color: var(--hex-alert-warning-color, #92400e);
+	}
+
+	.alert-danger {
+		background-color: var(--hex-alert-danger-background, #fef2f2);
+		color: var(--hex-alert-danger-color, #991b1b);
+	}
+
+	/* Badges. */
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		border-radius: 9999px;
+		padding: 0.125rem 0.625rem;
+		font-size: var(--text-small);
+		font-weight: 600;
+	}
+
+	.badge-default {
+		background-color: var(--hex-badge-default-background, #f3f4f6);
+		color: var(--hex-badge-default-color, #111827);
+	}
+
+	.badge-primary {
+		background-color: var(--hex-badge-primary-background, #dbeafe);
+		color: var(--hex-badge-primary-color, #1e40af);
+	}
+
+	.badge-success {
+		background-color: var(--hex-badge-success-background, #dcfce7);
+		color: var(--hex-badge-success-color, #166534);
+	}
+
+	.badge-warning {
+		background-color: var(--hex-badge-warning-background, #fef3c7);
+		color: var(--hex-badge-warning-color, #92400e);
+	}
+
+	.badge-danger {
+		background-color: var(--hex-badge-danger-background, #fee2e2);
+		color: var(--hex-badge-danger-color, #991b1b);
+	}
+
+	/* Icons. */
+	.icon {
+		color: var(--hex-icon-color, #475569);
+		width: var(--size-icon-md);
+		height: var(--size-icon-md);
+	}
+
+	.icon:hover {
+		color: var(--hex-icon-hover-color, #2563eb);
+	}
+
+	.icon-sm {
+		width: var(--size-icon-sm);
+		height: var(--size-icon-sm);
+	}
+
+	.icon-lg {
+		width: var(--size-icon-lg);
+		height: var(--size-icon-lg);
+	}
+}
+
+/* Respect reduced-motion for the handful of Animate.css entrance
+   animations used on templates (see assets/vendor/animate.min.css). */
+@media (prefers-reduced-motion: reduce) {
+	.animate__animated {
+		animation-duration: 1ms !important;
+		animation-iteration-count: 1 !important;
+	}
+}

@@ -1,0 +1,105 @@
+/**
+ * Admin Tailwind entry point. Compiled to ../tailwind-admin.css via
+ * `npm run build:css`. Deliberately imports only theme tokens +
+ * utilities, NOT Tailwind's preflight/base reset — this build shares
+ * the page with the rest of wp-admin's own chrome (toolbar, sidebar,
+ * other plugins' UI), and Preflight's element-level resets (h1-h6,
+ * button, etc.) would visually break that shared chrome. Utility
+ * classes are scoped by nature (only elements that use them are
+ * affected), so skipping Preflight is the correct fix here, not a
+ * workaround.
+ *
+ * IMPORTANT MODIFIER NOTE: WordPress's own core admin CSS is
+ * unlayered, and Tailwind puts every utility inside a CSS `@layer`.
+ * Per the CSS cascade spec, unlayered rules always beat layered ones
+ * regardless of selector specificity — so a plain `a { color: ... }`
+ * in WP core's admin.css overrides `.text-white` even though a class
+ * selector is normally more specific than an element selector. Where
+ * this actually bites (e.g. the nav links in partials.php), use
+ * Tailwind's trailing `!` important-modifier (`text-white!`) to force
+ * the win — that's the documented fix for this exact class of
+ * conflict, not a hack.
+ *
+ * @package Hex
+ */
+
+@import "tailwindcss/theme" layer(theme);
+@import "tailwindcss/utilities" layer(utilities);
+@import "./theme.css";
+
+@source "../../../inc/admin/*.php";
+
+/**
+ * Admin-only UI components: buttons and form fields for a dark,
+ * polished dashboard look. Not gated behind the front-end design-token
+ * system (inc/style-settings.php) — that system exists so a site
+ * owner can restyle their own front end without a rebuild; the admin
+ * dashboard is our own chrome, so it's fine for these to be plain
+ * Tailwind components. Accent color is indigo, not the hexnity brand
+ * teal — the brand only needs to show up once (the sidebar), not on
+ * every interactive element.
+ *
+ * Several rules below use Tailwind's trailing `!` important-modifier
+ * on specific properties (background/border/text color, focus ring)
+ * because WordPress core's own admin CSS is unlayered and otherwise
+ * beats our layered utilities regardless of specificity — see
+ * knoladge/tailwind-cascade-layers-vs-wp-admin.md.
+ */
+@layer components {
+	.hex-btn {
+		@apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border-none! px-4 py-2.5 text-sm font-medium transition-colors duration-150 focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-950 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50;
+	}
+	.hex-btn-primary {
+		@apply bg-indigo-600! text-white! shadow-sm shadow-indigo-950/50 hover:bg-indigo-500! focus:ring-indigo-500;
+	}
+	.hex-btn-secondary {
+		@apply border! border-gray-700! bg-gray-800! text-gray-200! hover:bg-gray-700! focus:ring-gray-600;
+	}
+	.hex-btn-danger {
+		@apply bg-red-600! text-white! shadow-sm shadow-red-950/50 hover:bg-red-500! focus:ring-red-500;
+	}
+
+	.hex-field {
+		@apply block w-full rounded-lg border! border-gray-700! bg-gray-900! px-3 py-2 text-sm text-gray-100! transition placeholder:text-gray-500 focus:border-indigo-500! focus:ring-2 focus:ring-indigo-500/40 focus:outline-none!;
+	}
+	.hex-color-swatch {
+		@apply h-9 w-9 shrink-0 cursor-pointer rounded-lg border! border-gray-700! bg-gray-900! p-1;
+	}
+
+	.hex-label {
+		@apply mb-1.5 block text-sm font-medium text-gray-300!;
+	}
+
+	.hex-admin .description {
+		@apply text-sm text-gray-400!;
+	}
+
+	.hex-admin .notice {
+		@apply rounded-lg border! bg-gray-900! text-gray-100! shadow-none;
+	}
+	.hex-admin .notice p {
+		@apply text-gray-200!;
+	}
+	.hex-admin .notice-success {
+		@apply border-emerald-700/60! bg-emerald-950/40!;
+	}
+	.hex-admin .notice-error {
+		@apply border-red-700/60! bg-red-950/40!;
+	}
+	.hex-admin .notice-warning {
+		@apply border-amber-700/60! bg-amber-950/40!;
+	}
+
+	.hex-admin .form-table {
+		@apply w-full border-collapse;
+	}
+	.hex-admin .form-table tr {
+		@apply block border-b! border-gray-800! pb-4 last:border-none;
+	}
+	.hex-admin .form-table th {
+		@apply block w-full border-none! bg-transparent! px-0! py-0! pt-4 pb-1.5 text-left align-top text-sm font-medium text-gray-300!;
+	}
+	.hex-admin .form-table td {
+		@apply block border-none! bg-transparent! px-0! py-0!;
+	}
+}

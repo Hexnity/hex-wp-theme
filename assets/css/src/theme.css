@@ -1,0 +1,20 @@
+/**
+ * Shared Tailwind design tokens for both the front-end and admin
+ * builds. Palette pulled directly from the Hexnity logo's exact
+ * pixel color (#009688) extended to a full Material-style scale.
+ *
+ * @package Hex
+ */
+
+@theme {
+	--color-hexnity-50: #e0f2f1;
+	--color-hexnity-100: #b2dfdb;
+	--color-hexnity-200: #80cbc4;
+	--color-hexnity-300: #4db6ac;
+	--color-hexnity-400: #26a69a;
+	--color-hexnity-500: #009688;
+	--color-hexnity-600: #00897b;
+	--color-hexnity-700: #00796b;
+	--color-hexnity-800: #00695c;
+	--color-hexnity-900: #004d40;
+}

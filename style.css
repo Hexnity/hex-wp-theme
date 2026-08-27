@@ -1,0 +1,23 @@
+/*
+Theme Name: Hexnity WP
+Theme URI: https://hexnity.com
+Author: Nishan Shashintha
+Author URI: https://shashinthalk.cc
+Description: A lightweight, standards-compliant custom WordPress theme with three page templates (Default, Full Width, Canvas).
+Version: 1.5.0
+Requires at least: 6.4
+Tested up to: 7.1
+Requires PHP: 8.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: hex
+*/
+
+/*
+ * This file exists only for the theme header above — WordPress reads
+ * it to identify and version the theme, and get_stylesheet_uri()
+ * enqueues it for compatibility with anything that expects it to
+ * exist. All actual styling is compiled Tailwind CSS: see
+ * assets/css/tailwind.css (front end) and assets/css/tailwind-admin.css
+ * (admin), built from assets/css/src/*.css via `npm run build:css`.
+ */

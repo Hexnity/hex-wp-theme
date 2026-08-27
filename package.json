@@ -1,0 +1,19 @@
+{
+  "name": "hex-wp-theme-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Build tooling for the Hexnity WP AI Theme's Tailwind CSS output.",
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "build:css": "npm run build:css:front && npm run build:css:admin",
+    "build:css:front": "tailwindcss -i ./assets/css/src/front.css -o ./assets/css/tailwind.css --minify",
+    "build:css:admin": "tailwindcss -i ./assets/css/src/admin.css -o ./assets/css/tailwind-admin.css --minify",
+    "watch:css": "tailwindcss -i ./assets/css/src/front.css -o ./assets/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "@tailwindcss/typography": "^0.5.20",
+    "animate.css": "^4.1.1",
+    "tailwindcss": "^4.3.3"
+  }
+}

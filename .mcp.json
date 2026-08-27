@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "wordpress-local": {
+      "type": "http",
+      "url": "http://mindlabz-new.local/wp-json/mcp/mcp-adapter-default-server",
+      "headers": {
+        "Authorization": "Basic YToyVzVmIGxmbUMgcTBjaiA3OTh3IGxIVG0gZ3ZsdA=="
+      }
+    }
+  }
+}
