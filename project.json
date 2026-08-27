@@ -18,24 +18,60 @@
     "project.json": "This file. Structure/files/functions index — read here before opening real files.",
     "features/": "One md file per complete feature, updated whenever that feature changes.",
     "knoladge/": "Implementation notes, decisions, and documented failures/errors, kept for reuse.",
-    "github.md": "Reference doc (from a prior/related project) describing a GitHub-based self-updater mechanism. This theme's own updater (inc/updater.php) follows its architecture but is admin-configured rather than hardcoded — see features/github-updater.md."
+    "github.md": "Reference doc (from a prior/related project) describing a GitHub-based self-updater mechanism. This theme's own updater (inc/updater.php) follows its architecture but is admin-configured rather than hardcoded — see features/github-updater.md.",
+    "README.md": "Public-facing project readme: features, requirements, dev setup, testing/linting/build commands, license.",
+    "LICENSE": "Full GPLv2 (or later) license text, matching style.css's License field."
   },
   "structure": {
     "root": [
-      "style.css", "functions.php", "header.php", "footer.php", "index.php",
-      "page.php", "single.php", "archive.php", "search.php", "404.php", "comments.php",
-      "template-default.php", "template-full-width.php", "template-canvas.php",
-      "composer.json", "package.json", "phpcs.xml.dist", "phpunit.xml.dist",
-      "inc/", "template-parts/", "assets/", "tests/", "features/", "knoladge/"
+      "README.md",
+      "LICENSE",
+      "style.css",
+      "functions.php",
+      "header.php",
+      "footer.php",
+      "index.php",
+      "page.php",
+      "single.php",
+      "archive.php",
+      "search.php",
+      "404.php",
+      "comments.php",
+      "template-default.php",
+      "template-full-width.php",
+      "template-canvas.php",
+      "composer.json",
+      "package.json",
+      "phpcs.xml.dist",
+      "phpunit.xml.dist",
+      "inc/",
+      "template-parts/",
+      "assets/",
+      "tests/",
+      "features/",
+      "knoladge/"
     ],
     "inc": [
-      "setup.php", "enqueue.php", "template-tags.php", "widgets.php",
-      "customizer.php", "security.php", "updater.php", "child-theme.php", "style-settings.php",
+      "setup.php",
+      "enqueue.php",
+      "template-tags.php",
+      "widgets.php",
+      "customizer.php",
+      "security.php",
+      "updater.php",
+      "child-theme.php",
+      "style-settings.php",
       "google-fonts.php (API-free Google Fonts picker, see knoladge/google-fonts-picker.md)",
       "lib/plugin-update-checker/ (vendored third-party library, runtime-loaded, see features/github-updater.md)",
-      "admin/settings.php", "admin/menu.php", "admin/handlers.php", "admin/partials.php",
-      "admin/page-dashboard.php", "admin/page-updates.php", "admin/page-about.php",
-      "admin/page-child-theme.php", "admin/page-theme-options.php"
+      "admin/settings.php",
+      "admin/menu.php",
+      "admin/handlers.php",
+      "admin/partials.php",
+      "admin/page-dashboard.php",
+      "admin/page-updates.php",
+      "admin/page-about.php",
+      "admin/page-child-theme.php",
+      "admin/page-theme-options.php"
     ],
     "assets": [
       "css/src/theme.css (hexnity @theme tokens — admin build only)",
@@ -46,7 +82,8 @@
       "css/tailwind-admin.css (compiled admin output, shipped)",
       "vendor/animate.min.css (vendored, front-end only)",
       "images/hexnity-dark.png (full logo, admin-only usage — dashboard sidebar, h-11)",
-      "js/navigation.js", "js/admin.js"
+      "js/navigation.js",
+      "js/admin.js"
     ]
   },
   "files": {
@@ -68,7 +105,9 @@
     },
     "inc/enqueue.php": {
       "purpose": "Registers/enqueues compiled Tailwind CSS, vendored Animate.css, and navigation.js on the front end.",
-      "functions": [ "hex_enqueue_assets() — hooked to wp_enqueue_scripts. Enqueues hex-style (style.css header), hex-animate (animate.min.css), hex-tailwind (tailwind.css), hex-navigation (navigation.js)." ]
+      "functions": [
+        "hex_enqueue_assets() — hooked to wp_enqueue_scripts. Enqueues hex-style (style.css header), hex-animate (animate.min.css), hex-tailwind (tailwind.css), hex-navigation (navigation.js)."
+      ]
     },
     "inc/template-tags.php": {
       "purpose": "Template helper functions shared across template files, incl. the per-template title/chrome visibility logic.",
@@ -82,7 +121,9 @@
     },
     "inc/widgets.php": {
       "purpose": "Registers the 'footer-1' widget area.",
-      "functions": [ "hex_register_widget_areas() — hooked to widgets_init." ]
+      "functions": [
+        "hex_register_widget_areas() — hooked to widgets_init."
+      ]
     },
     "inc/customizer.php": {
       "purpose": "Registers the Customizer 'Layout Options' section and the footer-text setting.",
@@ -133,7 +174,14 @@
     },
     "inc/admin/partials.php": {
       "purpose": "Shared app-shell dashboard chrome for all five admin pages: hex_render_admin_shell_start( $active, $title, $description )/hex_render_admin_shell_end() render a persistent dark hexnity-branded sidebar (logo, 5-item icon nav, version footer) plus an equally dark content pane (bg-gray-950/900) with its own header bar. hex_render_admin_icon() prints one of a fixed set of inline SVGs built from plain shapes (rect/circle/line, not copied path data). hex_render_admin_stat_tile() is the icon+value+label tile used in the Dashboard's stat row (indigo icon chip). hex_render_admin_submit_button() renders a .hex-btn.hex-btn-primary submit button in place of WP core's submit_button(), which is styled for a light theme. General interactive accent is Tailwind's indigo scale, not hexnity-* (user: 'u dont need to strict with logo colors' — see knoladge/admin-dark-theme-components.md). Nav active/inactive text colors use Tailwind's ! important-modifier since WP core's unlayered admin CSS otherwise beats layered Tailwind utilities — see knoladge/tailwind-cascade-layers-vs-wp-admin.md.",
-      "functions": [ "hex_admin_nav_items()", "hex_render_admin_icon( $name, $classes )", "hex_render_admin_shell_start( $active, $title, $description )", "hex_render_admin_shell_end()", "hex_render_admin_stat_tile( $icon, $value, $label )", "hex_render_admin_submit_button( $label, $disabled )" ]
+      "functions": [
+        "hex_admin_nav_items()",
+        "hex_render_admin_icon( $name, $classes )",
+        "hex_render_admin_shell_start( $active, $title, $description )",
+        "hex_render_admin_shell_end()",
+        "hex_render_admin_stat_tile( $icon, $value, $label )",
+        "hex_render_admin_submit_button( $label, $disabled )"
+      ]
     },
     "inc/admin/handlers.php": {
       "purpose": "admin-post.php handlers for the Updates and Child Theme pages' action buttons. (Theme Options has no admin-post handler — it saves via the plain Settings API / options.php, like the other settings forms already do for Save Changes.)",
@@ -145,11 +193,21 @@
         "hex_handle_perform_child_update() — admin_post_hex_perform_child_update."
       ]
     },
-    "inc/admin/page-dashboard.php": { "purpose": "Dashboard page render: a 4-tile stat row (theme version, page template count, style-settings count, child-theme active state) via hex_render_admin_stat_tile(), then the existing Tailwind card grid (updates status, page templates, nav menus, quick links)." },
-    "inc/admin/page-updates.php": { "purpose": "Updates page render (Tailwind cards): settings form + Check Now / Check & Update Now buttons + last-run log." },
-    "inc/admin/page-about.php": { "purpose": "About page render (Tailwind definition list): theme metadata straight from wp_get_theme()." },
-    "inc/admin/page-child-theme.php": { "purpose": "Child Theme page render: repo/branch/token settings form, status card (Activated / Installed-not-active / none, per hex_is_child_theme_active()), 'Fetch & Install Child Theme' button (hidden while active), Check/Update buttons." },
-    "inc/admin/page-theme-options.php": { "purpose": "Theme Options page render, inside the shared shell: left-category tab nav (12 groups) + right detail panel with card-style panel headers (JS-driven, assets/js/admin.js), all fields wrapped in a <fieldset disabled> unless hex_is_child_theme_active(), an amber notice + link to Child Theme when disabled, and a sticky bottom save bar." },
+    "inc/admin/page-dashboard.php": {
+      "purpose": "Dashboard page render: a 4-tile stat row (theme version, page template count, style-settings count, child-theme active state) via hex_render_admin_stat_tile(), then the existing Tailwind card grid (updates status, page templates, nav menus, quick links)."
+    },
+    "inc/admin/page-updates.php": {
+      "purpose": "Updates page render (Tailwind cards): settings form + Check Now / Check & Update Now buttons + last-run log."
+    },
+    "inc/admin/page-about.php": {
+      "purpose": "About page render (Tailwind definition list): theme metadata straight from wp_get_theme()."
+    },
+    "inc/admin/page-child-theme.php": {
+      "purpose": "Child Theme page render: repo/branch/token settings form, status card (Activated / Installed-not-active / none, per hex_is_child_theme_active()), 'Fetch & Install Child Theme' button (hidden while active), Check/Update buttons."
+    },
+    "inc/admin/page-theme-options.php": {
+      "purpose": "Theme Options page render, inside the shared shell: left-category tab nav (12 groups) + right detail panel with card-style panel headers (JS-driven, assets/js/admin.js), all fields wrapped in a <fieldset disabled> unless hex_is_child_theme_active(), an amber notice + link to Child Theme when disabled, and a sticky bottom save bar."
+    },
     "inc/child-theme.php": {
       "purpose": "Fetches, validates (Template: header must match this theme), and installs a child theme from GitHub — not auto-generated — plus its own independent GitHub self-updater. See features/child-theme.md for full detail.",
       "functions": [
@@ -179,30 +237,81 @@
         "hex_style_sanitize_callback_for_type( $type ) — maps a schema field type to its sanitize callback function name."
       ]
     },
-    "header.php": { "purpose": "Opens <html>/<body>, skip link, site branding (text-large fallback title), primary nav. Neutral Tailwind styling (gray scale, no logo/brand color — see features/brand-styling.md). Used by every template except template-canvas.php." },
-    "footer.php": { "purpose": "Footer widgets, footer nav, site-info/copyright (text-small), closes <body>/<html>. Neutral Tailwind styling. Used by every template except template-canvas.php." },
-    "index.php": { "purpose": "Fallback loop template for any query without a more specific template." },
-    "page.php": { "purpose": "Implicit default page template (no explicit template selected). Renders template-parts/content-page.php." },
-    "single.php": { "purpose": "Single post template: content, comments, post navigation." },
-    "archive.php": { "purpose": "Category/tag/date/author archive listing. Title uses text-h1 (design-token, see features/design-system.md)." },
-    "search.php": { "purpose": "Search results listing. Title uses text-h1." },
-    "404.php": { "purpose": "Not Found page with a search form. Title uses text-h1 (weight/letter-spacing now via base h1{} rule); card uses .card component." },
-    "comments.php": { "purpose": "Comment list + comment form, included via comments_template(). Comments title uses text-h3; 'closed' notice uses text-small." },
-    "template-default.php": { "purpose": "Template Name: Default. Explicitly selectable equivalent of page.php — header, title, content, footer.", "template_name": "Default" },
-    "template-full-width.php": { "purpose": "Template Name: Full Width. Header/footer shown, title and max-width constraint suppressed.", "template_name": "Full Width" },
-    "template-canvas.php": { "purpose": "Template Name: Canvas. No header, no footer, no title — content only, own minimal <html> shell.", "template_name": "Canvas" },
-    "template-parts/content.php": { "purpose": "Post entry rendering for loop contexts (index/archive/search). Uses .card component; title text-h1 (singular)/text-h2 (list item, hover:text-site-primary), meta/footer text-small, animate__fadeIn." },
-    "template-parts/content-none.php": { "purpose": "Empty-result state, incl. search form when the query was a search. Title text-h2; card uses .card component." },
-    "template-parts/content-page.php": { "purpose": "Page title (text-h1, conditional on hex_should_show_title()) + content ('prose' typography — headings inside also respond to Theme Options via site-theme.css's .prose overrides). Shared by page.php and template-default.php." },
-    "assets/js/navigation.js": { "purpose": "Accessible mobile menu toggle: toggles Tailwind hidden/flex classes on #site-navigation ul." },
-    "assets/js/admin.js": { "purpose": "Confirm-dialog guard on the 'Check & Update Now' form." },
-    "assets/css/src/theme.css": { "purpose": "hexnity-{50..900} Tailwind v4 @theme color tokens, extracted from the real logo pixel color #009688 (Material Teal 500). Imported only by admin.css." },
-    "assets/css/src/front.css": { "purpose": "Front-end Tailwind entry: full Tailwind incl. Preflight + @tailwindcss/typography. Does NOT import theme.css — front end has no brand color." },
-    "assets/css/src/admin.css": { "purpose": "Admin Tailwind entry: tailwindcss/theme + tailwindcss/utilities only (no Preflight, so it doesn't reset the rest of wp-admin's chrome) + theme.css, plus a @layer components block of admin-only UI components (.hex-btn/-primary/-secondary/-danger, .hex-field, .hex-color-swatch, .hex-label) and dark-theme restyles for WP-core-rendered markup we don't control classes on (.form-table, .notice, .description). Several rules use Tailwind's ! important-modifier since WP core's own admin CSS is unlayered — see knoladge/admin-dark-theme-components.md." },
-    "assets/css/tailwind.css": { "purpose": "Compiled front-end CSS (npm run build:css:front). Shipped/committed like inc/lib — WordPress can't run the npm build in production." },
-    "assets/css/tailwind-admin.css": { "purpose": "Compiled admin CSS (npm run build:css:admin). Shipped/committed." },
-    "assets/vendor/animate.min.css": { "purpose": "Vendored Animate.css (from npm package, copied — same pattern as inc/lib/plugin-update-checker/). Front-end only." },
-    "assets/images/hexnity-dark.png": { "purpose": "The user's actual logo (downloaded from https://hexnity.com/images/hexnity-dark.png). White wordmark — needs a dark background. Admin-only usage: the dashboard sidebar (h-11, bumped from h-7 per user request 'make the logo little bigger'). The wp-admin sidebar menu icon uses a plain dashicon instead, not this image (a cropped-mark version was tried and removed per user request)." },
+    "header.php": {
+      "purpose": "Opens <html>/<body>, skip link, site branding (text-large fallback title), primary nav. Neutral Tailwind styling (gray scale, no logo/brand color — see features/brand-styling.md). Used by every template except template-canvas.php."
+    },
+    "footer.php": {
+      "purpose": "Footer widgets, footer nav, site-info/copyright (text-small), closes <body>/<html>. Neutral Tailwind styling. Used by every template except template-canvas.php."
+    },
+    "index.php": {
+      "purpose": "Fallback loop template for any query without a more specific template."
+    },
+    "page.php": {
+      "purpose": "Implicit default page template (no explicit template selected). Renders template-parts/content-page.php."
+    },
+    "single.php": {
+      "purpose": "Single post template: content, comments, post navigation."
+    },
+    "archive.php": {
+      "purpose": "Category/tag/date/author archive listing. Title uses text-h1 (design-token, see features/design-system.md)."
+    },
+    "search.php": {
+      "purpose": "Search results listing. Title uses text-h1."
+    },
+    "404.php": {
+      "purpose": "Not Found page with a search form. Title uses text-h1 (weight/letter-spacing now via base h1{} rule); card uses .card component."
+    },
+    "comments.php": {
+      "purpose": "Comment list + comment form, included via comments_template(). Comments title uses text-h3; 'closed' notice uses text-small."
+    },
+    "template-default.php": {
+      "purpose": "Template Name: Default. Explicitly selectable equivalent of page.php — header, title, content, footer.",
+      "template_name": "Default"
+    },
+    "template-full-width.php": {
+      "purpose": "Template Name: Full Width. Header/footer shown, title and max-width constraint suppressed.",
+      "template_name": "Full Width"
+    },
+    "template-canvas.php": {
+      "purpose": "Template Name: Canvas. No header, no footer, no title — content only, own minimal <html> shell.",
+      "template_name": "Canvas"
+    },
+    "template-parts/content.php": {
+      "purpose": "Post entry rendering for loop contexts (index/archive/search). Uses .card component; title text-h1 (singular)/text-h2 (list item, hover:text-site-primary), meta/footer text-small, animate__fadeIn."
+    },
+    "template-parts/content-none.php": {
+      "purpose": "Empty-result state, incl. search form when the query was a search. Title text-h2; card uses .card component."
+    },
+    "template-parts/content-page.php": {
+      "purpose": "Page title (text-h1, conditional on hex_should_show_title()) + content ('prose' typography — headings inside also respond to Theme Options via site-theme.css's .prose overrides). Shared by page.php and template-default.php."
+    },
+    "assets/js/navigation.js": {
+      "purpose": "Accessible mobile menu toggle: toggles Tailwind hidden/flex classes on #site-navigation ul."
+    },
+    "assets/js/admin.js": {
+      "purpose": "Confirm-dialog guard on the 'Check & Update Now' form."
+    },
+    "assets/css/src/theme.css": {
+      "purpose": "hexnity-{50..900} Tailwind v4 @theme color tokens, extracted from the real logo pixel color #009688 (Material Teal 500). Imported only by admin.css."
+    },
+    "assets/css/src/front.css": {
+      "purpose": "Front-end Tailwind entry: full Tailwind incl. Preflight + @tailwindcss/typography. Does NOT import theme.css — front end has no brand color."
+    },
+    "assets/css/src/admin.css": {
+      "purpose": "Admin Tailwind entry: tailwindcss/theme + tailwindcss/utilities only (no Preflight, so it doesn't reset the rest of wp-admin's chrome) + theme.css, plus a @layer components block of admin-only UI components (.hex-btn/-primary/-secondary/-danger, .hex-field, .hex-color-swatch, .hex-label) and dark-theme restyles for WP-core-rendered markup we don't control classes on (.form-table, .notice, .description). Several rules use Tailwind's ! important-modifier since WP core's own admin CSS is unlayered — see knoladge/admin-dark-theme-components.md."
+    },
+    "assets/css/tailwind.css": {
+      "purpose": "Compiled front-end CSS (npm run build:css:front). Shipped/committed like inc/lib — WordPress can't run the npm build in production."
+    },
+    "assets/css/tailwind-admin.css": {
+      "purpose": "Compiled admin CSS (npm run build:css:admin). Shipped/committed."
+    },
+    "assets/vendor/animate.min.css": {
+      "purpose": "Vendored Animate.css (from npm package, copied — same pattern as inc/lib/plugin-update-checker/). Front-end only."
+    },
+    "assets/images/hexnity-dark.png": {
+      "purpose": "The user's actual logo (downloaded from https://hexnity.com/images/hexnity-dark.png). White wordmark — needs a dark background. Admin-only usage: the dashboard sidebar (h-11, bumped from h-7 per user request 'make the logo little bigger'). The wp-admin sidebar menu icon uses a plain dashicon instead, not this image (a cropped-mark version was tried and removed per user request)."
+    },
     "inc/google-fonts.php": {
       "purpose": "Admin-configurable, API-free Google Fonts picker: the admin pastes a Google Fonts embed link (or the whole 3-line snippet); family names are parsed straight out of the stylesheet URL's own query string and fed into a shared <datalist> that every 'font'-type Theme Options field points to. See knoladge/google-fonts-picker.md and features/design-system.md.",
       "functions": [
@@ -214,20 +323,48 @@
         "hex_render_google_fonts_datalist() — prints the shared <datalist id=\"hex-google-fonts-list\"> every font-family field's searchable input points to."
       ]
     },
-    "package.json": { "purpose": "devDependencies only: tailwindcss, @tailwindcss/cli, @tailwindcss/typography, animate.css. Scripts: build:css / build:css:front / build:css:admin / watch:css." },
-    "composer.json": { "purpose": "require: yahnis-elsts/plugin-update-checker (runtime). require-dev: PHPCS + WPCS + PHPCompatibility, PHPUnit + WP_Mock (dev tooling only)." },
-    "phpcs.xml.dist": { "purpose": "WordPress Coding Standards ruleset (WordPress + PHPCompatibilityWP, testVersion 8.0-). Excludes inc/lib (vendored third-party code)." },
-    "phpunit.xml.dist": { "purpose": "PHPUnit config; bootstraps tests/bootstrap.php; suite = tests/*Test.php." },
-    "tests/bootstrap.php": { "purpose": "WP_Mock bootstrap + plain stub functions (add_action/add_filter/wp_parse_url/__/esc_html__) + a minimal WP_Error class stub + requires every inc/*.php (incl. updater.php, child-theme.php, style-settings.php, google-fonts.php, admin/settings.php) once." },
-    "tests/GoogleFontsTest.php": { "purpose": "18 tests for inc/google-fonts.php — URL sanitizing, family-name parsing, the front-end enqueue, the resource-hints filter, and the rendered <datalist>. See knoladge/google-fonts-picker.md." },
-    "tests/SetupTest.php": { "purpose": "Covers hex_get_page_templates() and hex_content_width()." },
-    "tests/TemplateTagsTest.php": { "purpose": "Covers hex_should_show_title() and hex_should_show_chrome() for every template." },
-    "tests/CustomizerTest.php": { "purpose": "Covers hex_sanitize_footer_text()." },
-    "tests/SecurityTest.php": { "purpose": "Covers hex_remove_version_generator() and hex_remove_pingback_header()." },
-    "tests/ThemeFilesTest.php": { "purpose": "Static checks: required files exist, page templates match hex_get_page_templates(), style.css Version == HEX_VERSION." },
-    "tests/UpdaterTest.php": { "purpose": "Covers the updater's own logic (branch default, 'not configured' graceful paths, both sanitize callbacks) — not the third-party library itself." },
-    "tests/ChildThemeTest.php": { "purpose": "Covers the fetch/validate functions (header parsing, non-200, missing Template:, wp_remote_get() failure, template mismatch), install's early-return validation paths, branch default, active-detection (none/any-active/live-vs-stored), 'no child theme yet' graceful paths, and the child sanitize callback — not the actual Theme_Upgrader/WP_Filesystem install or a real PucFactory build." },
-    "tests/StyleSettingsTest.php": { "purpose": "Covers the design-token schema (>=100 fields, every field's group is documented, every field has a real sanitize callback), naming transforms, value resolution, the CSS-var output builder (incl. shadow-keyword resolution and the injection-defense skip of an unsafe stored value), and all 6 sanitize callbacks' accept/reject-and-revert behavior." }
+    "package.json": {
+      "purpose": "devDependencies only: tailwindcss, @tailwindcss/cli, @tailwindcss/typography, animate.css. Scripts: build:css / build:css:front / build:css:admin / watch:css."
+    },
+    "composer.json": {
+      "purpose": "require: yahnis-elsts/plugin-update-checker (runtime). require-dev: PHPCS + WPCS + PHPCompatibility, PHPUnit + WP_Mock (dev tooling only)."
+    },
+    "phpcs.xml.dist": {
+      "purpose": "WordPress Coding Standards ruleset (WordPress + PHPCompatibilityWP, testVersion 8.0-). Excludes inc/lib (vendored third-party code)."
+    },
+    "phpunit.xml.dist": {
+      "purpose": "PHPUnit config; bootstraps tests/bootstrap.php; suite = tests/*Test.php."
+    },
+    "tests/bootstrap.php": {
+      "purpose": "WP_Mock bootstrap + plain stub functions (add_action/add_filter/wp_parse_url/__/esc_html__) + a minimal WP_Error class stub + requires every inc/*.php (incl. updater.php, child-theme.php, style-settings.php, google-fonts.php, admin/settings.php) once."
+    },
+    "tests/GoogleFontsTest.php": {
+      "purpose": "18 tests for inc/google-fonts.php — URL sanitizing, family-name parsing, the front-end enqueue, the resource-hints filter, and the rendered <datalist>. See knoladge/google-fonts-picker.md."
+    },
+    "tests/SetupTest.php": {
+      "purpose": "Covers hex_get_page_templates() and hex_content_width()."
+    },
+    "tests/TemplateTagsTest.php": {
+      "purpose": "Covers hex_should_show_title() and hex_should_show_chrome() for every template."
+    },
+    "tests/CustomizerTest.php": {
+      "purpose": "Covers hex_sanitize_footer_text()."
+    },
+    "tests/SecurityTest.php": {
+      "purpose": "Covers hex_remove_version_generator() and hex_remove_pingback_header()."
+    },
+    "tests/ThemeFilesTest.php": {
+      "purpose": "Static checks: required files exist, page templates match hex_get_page_templates(), style.css Version == HEX_VERSION."
+    },
+    "tests/UpdaterTest.php": {
+      "purpose": "Covers the updater's own logic (branch default, 'not configured' graceful paths, both sanitize callbacks) — not the third-party library itself."
+    },
+    "tests/ChildThemeTest.php": {
+      "purpose": "Covers the fetch/validate functions (header parsing, non-200, missing Template:, wp_remote_get() failure, template mismatch), install's early-return validation paths, branch default, active-detection (none/any-active/live-vs-stored), 'no child theme yet' graceful paths, and the child sanitize callback — not the actual Theme_Upgrader/WP_Filesystem install or a real PucFactory build."
+    },
+    "tests/StyleSettingsTest.php": {
+      "purpose": "Covers the design-token schema (>=100 fields, every field's group is documented, every field has a real sanitize callback), naming transforms, value resolution, the CSS-var output builder (incl. shadow-keyword resolution and the injection-defense skip of an unsafe stored value), and all 6 sanitize callbacks' accept/reject-and-revert behavior."
+    }
   },
   "testing": {
     "unit_tests": "composer install && vendor/bin/phpunit — 85 tests / 419 assertions, all passing as of 2026-08-27.",
@@ -246,11 +383,25 @@
       }
     },
     "composer_packages": {
-      "runtime": [ "yahnis-elsts/plugin-update-checker ^5.4 (resolved v5.7) — vendored copy actually loaded from inc/lib/plugin-update-checker/, not vendor/" ],
-      "dev": [ "squizlabs/php_codesniffer", "wp-coding-standards/wpcs", "phpcompatibility/phpcompatibility-wp", "dealerdirect/phpcodesniffer-composer-installer", "phpunit/phpunit ^9.6", "10up/wp_mock ^1.0" ]
+      "runtime": [
+        "yahnis-elsts/plugin-update-checker ^5.4 (resolved v5.7) — vendored copy actually loaded from inc/lib/plugin-update-checker/, not vendor/"
+      ],
+      "dev": [
+        "squizlabs/php_codesniffer",
+        "wp-coding-standards/wpcs",
+        "phpcompatibility/phpcompatibility-wp",
+        "dealerdirect/phpcodesniffer-composer-installer",
+        "phpunit/phpunit ^9.6",
+        "10up/wp_mock ^1.0"
+      ]
     },
     "npm_packages": {
-      "dev": [ "tailwindcss ^4.3.3", "@tailwindcss/cli ^4.3.3", "@tailwindcss/typography ^0.5.20", "animate.css ^4.1.1 (vendored copy actually loaded from assets/vendor/, not node_modules/)" ]
+      "dev": [
+        "tailwindcss ^4.3.3",
+        "@tailwindcss/cli ^4.3.3",
+        "@tailwindcss/typography ^0.5.20",
+        "animate.css ^4.1.1 (vendored copy actually loaded from assets/vendor/, not node_modules/)"
+      ]
     }
   },
   "open_items": [

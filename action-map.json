@@ -395,6 +395,16 @@
         "claude.md",
         "project.json"
       ]
+    },
+    {
+      "date": "2026-08-27",
+      "user_requirement": "\"add readme and license.\"",
+      "action": "Added README.md (project overview: features summary, requirements, dev setup via composer/npm, testing/linting/build commands, pointer to the internal claude.md/project.json/features/knoladge doc system, license section) and LICENSE (full canonical GNU GPLv2 text, matching the License field already declared in style.css and the GPL-2.0-or-later license fields in composer.json/package.json). No theme code, styling, or runtime behavior changed — docs-only addition, so no version bump per the version-bump rule. Updated project.json (structure.root + docs) to index both new files.",
+      "files_touched": [
+        "README.md",
+        "LICENSE",
+        "project.json"
+      ]
     }
   ]
 }
