@@ -95,7 +95,7 @@ function hex_render_admin_shell_start( $active, $title, $description = '' ) {
 							<?php $is_active = ( $active === $key ); ?>
 							<a
 								href="<?php echo esc_url( admin_url( 'admin.php?page=' . $item[1] ) ); ?>"
-								class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium <?php echo $is_active ? 'bg-white/10 text-white!' : 'text-white/6!0! hover:bg-white/5 hover:text-white!'; ?>"
+								class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium <?php echo $is_active ? 'bg-white/10 text-white!' : 'text-white! hover:bg-white/5'; ?>"
 								<?php echo $is_active ? 'aria-current="page"' : ''; ?>
 							>
 								<?php hex_render_admin_icon( $key, 'h-5 w-5 shrink-0' ); ?>
@@ -105,7 +105,7 @@ function hex_render_admin_shell_start( $active, $title, $description = '' ) {
 					</nav>
 				</div>
 
-				<div class="border-t border-white/10 px-5 py-4 text-xs text-white/4!0!">
+				<div class="border-t border-white/10 px-5 py-4 text-xs text-white/40!">
 					<?php
 					printf(
 						/* translators: %s: theme version. */

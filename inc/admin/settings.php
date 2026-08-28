@@ -1,9 +1,14 @@
 <?php
 /**
- * Settings API registration for the Updates page (main repo/branch/token),
- * the Child Theme page (separate child repo/branch/token), and the
- * Theme Options page (the full design-token schema — see
- * inc/style-settings.php and features/design-system.md). All
+ * Settings API registration for the Updates page (main repo/branch/token)
+ * and the Child Theme page (separate child repo/branch/token). The
+ * Theme Options page's design tokens (inc/style-settings.php,
+ * features/design-system.md) are NOT registered here — they're saved
+ * via a dedicated admin-post handler
+ * (hex_handle_save_style_options(), inc/admin/handlers.php) into a
+ * CSS file in the active child theme, not the Settings API/database;
+ * this file only renders those fields
+ * (hex_render_style_field()/hex_render_style_group_fields()). All
  * admin-configured — nothing is hardcoded in the theme's source.
  *
  * @package Hex
@@ -301,45 +306,10 @@ function hex_render_child_activation_key_field() {
 }
 
 /**
- * Register the "hex_style_options" settings group: every token in
- * hex_get_style_schema() (~146 fields). Fields are rendered directly
- * by inc/admin/page-theme-options.php (a tabbed grid layout, not the
- * default WP form-table), so this only needs the Settings API's
- * save/nonce/sanitize machinery — no add_settings_section()/
- * add_settings_field() calls.
- *
- * @return void
- */
-function hex_register_style_settings() {
-	foreach ( hex_get_style_schema() as $key => $field ) {
-		register_setting(
-			'hex_style_options',
-			hex_style_option_name( $key ),
-			array(
-				'type'              => 'string',
-				'sanitize_callback' => hex_style_sanitize_callback_for_type( $field['type'] ),
-				'default'           => $field['default'],
-			)
-		);
-	}
-
-	register_setting(
-		'hex_style_options',
-		'hex_google_fonts_urls',
-		array(
-			'type'              => 'string',
-			'sanitize_callback' => 'hex_sanitize_google_fonts_urls',
-			'default'           => '',
-		)
-	);
-}
-add_action( 'admin_init', 'hex_register_style_settings' );
-
-/**
  * Generic field renderer for every Theme Options field — a paired
  * color-swatch + text input for 'color', a <select> of 100-900 for
  * 'weight', a <select> of shadow presets for 'shadow', a plain text
- * input for 'font'/'length'/'number' (the last two just differ in
+ * input for 'font'/'length'/'number'/'custom' (differing only in
  * placeholder hint).
  *
  * @param array $args Field args: 'key' (schema key) and 'type'.
@@ -348,7 +318,7 @@ add_action( 'admin_init', 'hex_register_style_settings' );
 function hex_render_style_field( $args ) {
 	$key         = $args['key'];
 	$type        = $args['type'];
-	$option_name = hex_style_option_name( $key );
+	$option_name = hex_style_field_name( $key );
 	$value       = hex_get_style_value( $key );
 	$field_class = 'hex-field';
 
@@ -397,15 +367,30 @@ function hex_render_style_field( $args ) {
 			);
 			break;
 
-		default: // length, number.
+		default: // length, number, custom.
 			printf(
 				'<input type="text" id="%1$s" name="%1$s" value="%2$s" class="%3$s" placeholder="%4$s">',
 				esc_attr( $option_name ),
 				esc_attr( $value ),
 				esc_attr( $field_class ),
-				esc_attr( 'number' === $type ? '1.5' : 'e.g. 1.5rem' )
+				esc_attr( hex_style_field_placeholder_for_type( $type ) )
 			);
 	}
+}
+
+/**
+ * The placeholder hint for a plain-text-input field type.
+ *
+ * @param string $type Field type.
+ * @return string
+ */
+function hex_style_field_placeholder_for_type( $type ) {
+	$placeholders = array(
+		'number' => '1.5',
+		'custom' => 'e.g. rgba(0,0,0,.5)',
+	);
+
+	return isset( $placeholders[ $type ] ) ? $placeholders[ $type ] : 'e.g. 1.5rem';
 }
 
 /**
@@ -417,13 +402,13 @@ function hex_render_style_field( $args ) {
  * @return void
  */
 function hex_render_style_group_fields( $group ) {
-	foreach ( hex_get_style_schema() as $key => $field ) {
+	foreach ( hex_get_effective_style_schema() as $key => $field ) {
 		if ( $field['group'] !== $group ) {
 			continue;
 		}
 		?>
 		<div class="hex-style-field">
-			<label for="<?php echo esc_attr( hex_style_option_name( $key ) ); ?>" class="hex-label">
+			<label for="<?php echo esc_attr( hex_style_field_name( $key ) ); ?>" class="hex-label">
 				<?php echo esc_html( $field['label'] ); ?>
 			</label>
 			<?php
@@ -440,39 +425,66 @@ function hex_render_style_group_fields( $group ) {
 }
 
 /**
- * Render the "Google Fonts" textarea (one embed link/URL per line, or
- * the whole snippet from fonts.google.com) at the top of the
- * Typography panel, plus a chip list of the families it currently
- * resolves to — so every 'font'-type field's searchable picker
- * (see hex_render_google_fonts_datalist()) has something to offer
- * beyond whatever the admin types by hand.
+ * Render the "Google Fonts" repeater (one embed link/URL per row, or
+ * the whole snippet from fonts.google.com pasted into a single row)
+ * at the top of the Typography panel, plus a chip list of the
+ * families it currently resolves to — so every 'font'-type field's
+ * searchable picker (see hex_render_google_fonts_datalist()) has
+ * something to offer beyond whatever the admin types by hand.
+ *
+ * The repeater rows are a client-side convenience only
+ * (assets/js/admin.js keeps them synced into a single hidden field on
+ * every change, live-updating the shared datalist and the chip list
+ * as it goes) — the field actually submitted is still the same
+ * newline-joined "hex_google_fonts_urls" string
+ * hex_sanitize_google_fonts_urls() has always expected, so storage
+ * and sanitizing are unchanged.
  *
  * @return void
  */
 function hex_render_google_fonts_field() {
 	$families = hex_get_google_font_families();
+	$urls     = hex_get_google_fonts_urls();
+
+	if ( ! $urls ) {
+		$urls = array( '' );
+	}
 	?>
-	<div class="border-b border-gray-800 px-6 py-5">
-		<label for="hex_google_fonts_urls" class="hex-label"><?php esc_html_e( 'Google Fonts', 'hex' ); ?></label>
+	<div class="border-b border-gray-800 px-6 py-5" data-hex-google-fonts>
+		<label class="hex-label"><?php esc_html_e( 'Google Fonts', 'hex' ); ?></label>
 		<p class="mb-2 text-sm text-gray-400!">
-			<?php esc_html_e( 'Paste one or more Google Fonts embed links from fonts.google.com below (the whole snippet is fine, or just the stylesheet URL) — every family found is added to the font pickers below, no API key needed.', 'hex' ); ?>
+			<?php esc_html_e( 'Paste a Google Fonts embed link from fonts.google.com into each row below (the whole snippet is fine, or just the stylesheet URL) — every family found is added to the font pickers below as you type, no API key needed.', 'hex' ); ?>
 		</p>
-		<textarea
-			id="hex_google_fonts_urls"
-			name="hex_google_fonts_urls"
-			rows="3"
-			class="hex-field font-mono text-xs"
-			placeholder="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap"
-		><?php echo esc_textarea( get_option( 'hex_google_fonts_urls', '' ) ); ?></textarea>
-		<?php if ( $families ) : ?>
-			<div class="mt-3 flex flex-wrap gap-1.5">
-				<?php foreach ( $families as $family ) : ?>
-					<span class="rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300!"><?php echo esc_html( $family ); ?></span>
-				<?php endforeach; ?>
-			</div>
-		<?php else : ?>
-			<p class="mt-3 text-xs text-gray-500!"><?php esc_html_e( 'No Google Fonts added yet — the font fields below just take whatever you type, e.g. a system font stack.', 'hex' ); ?></p>
-		<?php endif; ?>
+
+		<div class="space-y-2" data-hex-google-fonts-rows>
+			<?php foreach ( $urls as $url ) : ?>
+				<div class="hex-google-fonts-row flex items-center gap-2">
+					<input
+						type="text"
+						class="hex-field font-mono text-xs"
+						value="<?php echo esc_attr( $url ); ?>"
+						placeholder="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap"
+						data-hex-google-fonts-url
+					>
+					<button type="button" class="hex-btn hex-btn-secondary shrink-0 px-3!" data-hex-remove-font-row aria-label="<?php esc_attr_e( 'Remove font', 'hex' ); ?>">&times;</button>
+				</div>
+			<?php endforeach; ?>
+		</div>
+
+		<button type="button" class="hex-btn hex-btn-secondary mt-3" data-hex-add-font-row>
+			+ <?php esc_html_e( 'Add Font', 'hex' ); ?>
+		</button>
+
+		<textarea id="hex_google_fonts_urls" name="hex_google_fonts_urls" class="hidden" data-hex-google-fonts-hidden><?php echo esc_textarea( get_option( 'hex_google_fonts_urls', '' ) ); ?></textarea>
+
+		<div class="mt-3 flex flex-wrap gap-1.5" data-hex-google-fonts-chips>
+			<?php foreach ( $families as $family ) : ?>
+				<span class="rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300!"><?php echo esc_html( $family ); ?></span>
+			<?php endforeach; ?>
+		</div>
+		<p class="mt-2 text-xs text-gray-500! <?php echo $families ? 'hidden' : ''; ?>" data-hex-google-fonts-empty>
+			<?php esc_html_e( 'No Google Fonts added yet — the font fields below just take whatever you type, e.g. a system font stack.', 'hex' ); ?>
+		</p>
 	</div>
 	<?php
 }

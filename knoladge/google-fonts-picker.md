@@ -61,6 +61,55 @@ family=...">`).
   `'typography' === $group`) — it's a font-system control, not a
   design token itself, so it isn't part of `hex_get_style_schema()`.
 
+## Repeater UI + live picker update (2026-08-27)
+
+Follow-up ask: the original single textarea only showed the resolved
+family chips (and updated the `<datalist>`) after a full save+reload,
+which read as broken — pasting a URL and looking at the still-empty
+"No Google Fonts added yet" message right below it, with no feedback
+that anything had registered. User: *"here u have to add repeater, if
+I add font it should visible in font selector as drop down."*
+
+- **The storage/sanitize contract was deliberately left untouched.**
+  `hex_sanitize_google_fonts_urls()`, `hex_get_google_fonts_urls()`,
+  and the `hex_google_fonts_urls` option are still one newline-joined
+  string — same as before, so `tests/GoogleFontsTest.php`'s 18 tests
+  needed zero changes. The repeater is a client-side-only convenience
+  layered on top: `hex_render_google_fonts_field()` now renders one
+  visible text input per stored URL (plus an "+ Add Font" button and a
+  per-row remove button) alongside a single hidden `<textarea
+  data-hex-google-fonts-hidden>` carrying the *actual*
+  `name="hex_google_fonts_urls"` field that gets submitted.
+- **`assets/js/admin.js`** (new IIFE) keeps the hidden field's value in
+  sync with the visible rows on every keystroke (`input` listener,
+  joining non-empty row values with `\n` — exactly the format
+  `hex_sanitize_google_fonts_urls()` already parses), and on the same
+  tick re-derives the family list by mirroring the PHP regex logic in
+  JS (`family=[^&]+` extraction, `+`-to-space decoding, stripping the
+  `:axis-spec` suffix) — then rewrites the shared
+  `#hex-google-fonts-list` `<datalist>`'s `<option>`s and the chip list
+  from scratch. This is why a newly pasted font now shows up in the
+  "Body Font Family" / "Heading Font Family" etc. dropdowns
+  immediately, without saving — saving is still what makes it durable
+  across reloads/other admins, but the picker itself no longer waits
+  for it.
+- The repeater's remove button (`.hex-btn.hex-btn-secondary` shrunk
+  with `px-3!`) needed the same `!important`-over-`bg-black!`-style
+  care as the Theme Options tab buttons — see
+  `knoladge/admin-bare-button-reset-and-layer-order.md` — since
+  `.hex-btn`'s own `px-4` lives in the later-declared `components`
+  layer and would otherwise have beaten a plain `px-3` utility
+  regardless of specificity.
+- **This UI has no no-JS fallback for editing.** The visible per-row
+  inputs are deliberately unnamed (only the hidden `<textarea>` carries
+  `name="hex_google_fonts_urls"`), so without JS running, typing into a
+  row never reaches the submitted field — the admin would see their
+  existing saved URLs rendered, but any add/remove/edit would be
+  silently lost on submit. Accepted as consistent with the rest of
+  this dashboard, which already assumes JS for anything interactive
+  (tab switching breaks completely without it; the color-swatch/hex
+  text sync just doesn't sync).
+
 ## Testing
 
 `tests/GoogleFontsTest.php` (18 tests) covers: sanitizing a bare URL,

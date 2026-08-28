@@ -1,13 +1,17 @@
 /**
  * The site's admin-configurable design tokens (Theme Options page) —
- * ~146 fields across 12 groups. Every token here is defined as
- * `var(--hex-{key}, {default})` — pointing at a runtime CSS custom
- * property that inc/style-settings.php prints in <head> from the
- * saved options, falling back to the hardcoded default when nothing's
- * been saved (or a value was rejected as unsafe). This indirection is
- * what makes a change in the Theme Options admin page apply on the
- * front end immediately, with no rebuild: Tailwind bakes in a
- * reference to the runtime variable, not the value itself.
+ * ~146 fields across 12 groups, plus any auto-detected custom tokens.
+ * Every token here is defined as `var(--hex-{key}, {default})` —
+ * pointing at a runtime CSS custom property declared in the active
+ * child theme's theme-options.css file (enqueued directly by
+ * inc/style-settings.php's hex_enqueue_child_theme_tokens()), falling
+ * back to the hardcoded default here when no child theme is active,
+ * nothing's been saved yet, or a value was rejected as unsafe. This
+ * indirection is what makes a change in the Theme Options admin page
+ * apply on the front end immediately, with no rebuild: Tailwind bakes
+ * in a reference to the runtime variable, not the value itself. See
+ * knoladge/child-theme-css-token-architecture.md for the full
+ * architecture.
  *
  * Every @theme name here is deliberately distinct from Tailwind's own
  * default token names — EXCEPT the "Global" radius scale

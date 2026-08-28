@@ -9,6 +9,13 @@ whatever child theme ends up installed: separate repository, branch,
 and access token from the main theme's own updater
 ([[github-updater]]), checked and installed separately.
 
+Once a child theme is active, it also becomes the storage location for
+the Theme Options design-token system — see
+[[child-theme-css-token-architecture]] (knoladge/) and
+[[design-system]] — which is why `hex_is_child_theme_active()` (this
+feature's own function) is the single gate Theme Options editing
+checks.
+
 ## Status
 
 Implemented, unit-tested (the fetch/validate logic — see Tests

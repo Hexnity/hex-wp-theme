@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Must always match the `Version:` header in style.css.
  */
-define( 'HEX_VERSION', '1.5.0' );
+define( 'HEX_VERSION', '1.5.6' );
 
 /** Absolute path to the theme directory. */
 define( 'HEX_THEME_DIR', get_template_directory() );

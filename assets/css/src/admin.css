@@ -70,6 +70,16 @@
 		@apply mb-1.5 block text-sm font-medium text-gray-300!;
 	}
 
+	/*
+	 * Bare <button> elements keep the browser's native white/bordered
+	 * widget chrome in this build, since admin.css deliberately skips
+	 * Tailwind's Preflight reset (see file header). Components built
+	 * from <button> need this reset explicitly.
+	 */
+	.hex-tab-btn {
+		@apply cursor-pointer appearance-none border-none! bg-black! text-white!;
+	}
+
 	.hex-admin .description {
 		@apply text-sm text-gray-400!;
 	}
@@ -101,5 +111,15 @@
 	}
 	.hex-admin .form-table td {
 		@apply block border-none! bg-transparent! px-0! py-0!;
+	}
+
+	/*
+	 * do_settings_sections() prints its section title as a bare,
+	 * unclassed <h2> directly inside the settings <form> — WP core
+	 * gives it no color of its own on a dark background, so without
+	 * this it's unreadable. See knoladge/tailwind-cascade-layers-vs-wp-admin.md.
+	 */
+	.hex-admin form > h2 {
+		@apply mb-4 text-sm font-semibold text-white!;
 	}
 }

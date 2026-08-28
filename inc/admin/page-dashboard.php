@@ -24,7 +24,7 @@ function hex_render_dashboard_page() {
 	$nav_menus   = get_registered_nav_menus();
 	$templates   = hex_get_page_templates();
 	$is_active   = hex_is_child_theme_active();
-	$field_count = count( hex_get_style_schema() );
+	$field_count = count( hex_get_effective_style_schema() );
 	?>
 	<?php
 	hex_render_admin_shell_start(

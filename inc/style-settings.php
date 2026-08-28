@@ -2,15 +2,18 @@
 /**
  * Admin-configurable design tokens — a YOOtheme-Pro-scale schema
  * (typography, spacing, colors, buttons, forms, cards, sections,
- * global radius, tables, alerts, badges, icons). The single schema
- * drives Settings API registration, sanitization, field rendering,
- * and the runtime CSS custom properties printed on the front end —
- * see assets/css/src/site-theme.css for how Tailwind consumes them,
- * and features/design-system.md for the full reference on which
- * class to use for what.
+ * global radius, tables, alerts, badges, icons). Values live in a CSS
+ * file inside the active child theme (hex_style_tokens_file_path()),
+ * not the database — the static schema below only supplies
+ * defaults/labels/types for known keys; any other "--hex-*" custom
+ * property found in that file is auto-detected as a "Custom Tokens"
+ * field (see hex_merge_style_schema_with_tokens()). See
+ * knoladge/child-theme-css-token-architecture.md for the full
+ * architecture and assets/css/src/site-theme.css for how Tailwind
+ * consumes the resulting CSS custom properties.
  *
  * Loaded unconditionally (not gated behind is_admin()) because the
- * front end needs hex_render_style_css_vars() on every request.
+ * front end needs hex_enqueue_child_theme_tokens() on every request.
  *
  * @package Hex
  */
@@ -83,40 +86,53 @@ function hex_get_style_schema() {
 		list( $size, $line_height, $letter_spacing, $weight, $margin ) = $defaults;
 		$upper = strtoupper( $level );
 
-		$schema[ "{$level}_size" ]           = array(
-			'group'   => 'typography',
-			'type'    => 'length',
-			'default' => $size,
+		$schema[ "{$level}_size_mobile" ]    = array(
+			'group'    => 'typography',
+			'subgroup' => $upper,
+			'type'     => 'length',
+			'default'  => $size,
 			/* translators: %s: Heading level, e.g. H1. */
-			'label'   => sprintf( __( '%s Size', 'hex' ), $upper ),
+			'label'    => sprintf( __( '%s Mobile Size', 'hex' ), $upper ),
+		);
+		$schema[ "{$level}_size_desktop" ]   = array(
+			'group'    => 'typography',
+			'subgroup' => $upper,
+			'type'     => 'length',
+			'default'  => $size,
+			/* translators: %s: Heading level, e.g. H1. */
+			'label'    => sprintf( __( '%s Desktop Size', 'hex' ), $upper ),
 		);
 		$schema[ "{$level}_line_height" ]    = array(
-			'group'   => 'typography',
-			'type'    => 'number',
-			'default' => $line_height,
+			'group'    => 'typography',
+			'subgroup' => $upper,
+			'type'     => 'number',
+			'default'  => $line_height,
 			/* translators: %s: Heading level, e.g. H1. */
-			'label'   => sprintf( __( '%s Line Height', 'hex' ), $upper ),
+			'label'    => sprintf( __( '%s Line Height', 'hex' ), $upper ),
 		);
 		$schema[ "{$level}_letter_spacing" ] = array(
-			'group'   => 'typography',
-			'type'    => 'length',
-			'default' => $letter_spacing,
+			'group'    => 'typography',
+			'subgroup' => $upper,
+			'type'     => 'length',
+			'default'  => $letter_spacing,
 			/* translators: %s: Heading level, e.g. H1. */
-			'label'   => sprintf( __( '%s Letter Spacing', 'hex' ), $upper ),
+			'label'    => sprintf( __( '%s Letter Spacing', 'hex' ), $upper ),
 		);
 		$schema[ "{$level}_weight" ]         = array(
-			'group'   => 'typography',
-			'type'    => 'weight',
-			'default' => $weight,
+			'group'    => 'typography',
+			'subgroup' => $upper,
+			'type'     => 'weight',
+			'default'  => $weight,
 			/* translators: %s: Heading level, e.g. H1. */
-			'label'   => sprintf( __( '%s Font Weight', 'hex' ), $upper ),
+			'label'    => sprintf( __( '%s Font Weight', 'hex' ), $upper ),
 		);
 		$schema[ "{$level}_margin_bottom" ]  = array(
-			'group'   => 'typography',
-			'type'    => 'length',
-			'default' => $margin,
+			'group'    => 'typography',
+			'subgroup' => $upper,
+			'type'     => 'length',
+			'default'  => $margin,
 			/* translators: %s: Heading level, e.g. H1. */
-			'label'   => sprintf( __( '%s Margin Bottom', 'hex' ), $upper ),
+			'label'    => sprintf( __( '%s Margin Bottom', 'hex' ), $upper ),
 		);
 	}
 
@@ -132,63 +148,79 @@ function hex_get_style_schema() {
 		list( $size, $line_height, $letter_spacing, $weight ) = $defaults;
 		$label_name = ucfirst( $style );
 
-		$schema[ "{$style}_size" ]        = array(
-			'group'   => 'typography',
-			'type'    => 'length',
-			'default' => $size,
+		$schema[ "{$style}_size_mobile" ]  = array(
+			'group'    => 'typography',
+			'subgroup' => $label_name,
+			'type'     => 'length',
+			'default'  => $size,
 			/* translators: %s: Text style name, e.g. Lead. */
-			'label'   => sprintf( __( '%s Text Size', 'hex' ), $label_name ),
+			'label'    => sprintf( __( '%s Mobile Text Size', 'hex' ), $label_name ),
 		);
-		$schema[ "{$style}_line_height" ] = array(
-			'group'   => 'typography',
-			'type'    => 'number',
-			'default' => $line_height,
+		$schema[ "{$style}_size_desktop" ] = array(
+			'group'    => 'typography',
+			'subgroup' => $label_name,
+			'type'     => 'length',
+			'default'  => $size,
 			/* translators: %s: Text style name, e.g. Lead. */
-			'label'   => sprintf( __( '%s Line Height', 'hex' ), $label_name ),
+			'label'    => sprintf( __( '%s Desktop Text Size', 'hex' ), $label_name ),
+		);
+		$schema[ "{$style}_line_height" ]  = array(
+			'group'    => 'typography',
+			'subgroup' => $label_name,
+			'type'     => 'number',
+			'default'  => $line_height,
+			/* translators: %s: Text style name, e.g. Lead. */
+			'label'    => sprintf( __( '%s Line Height', 'hex' ), $label_name ),
 		);
 		if ( null !== $letter_spacing ) {
 			$schema[ "{$style}_letter_spacing" ] = array(
-				'group'   => 'typography',
-				'type'    => 'length',
-				'default' => $letter_spacing,
+				'group'    => 'typography',
+				'subgroup' => $label_name,
+				'type'     => 'length',
+				'default'  => $letter_spacing,
 				/* translators: %s: Text style name, e.g. Lead. */
-				'label'   => sprintf( __( '%s Letter Spacing', 'hex' ), $label_name ),
+				'label'    => sprintf( __( '%s Letter Spacing', 'hex' ), $label_name ),
 			);
 		}
 		if ( null !== $weight ) {
 			$schema[ "{$style}_weight" ] = array(
-				'group'   => 'typography',
-				'type'    => 'weight',
-				'default' => $weight,
+				'group'    => 'typography',
+				'subgroup' => $label_name,
+				'type'     => 'weight',
+				'default'  => $weight,
 				/* translators: %s: Text style or button/badge/alert variant name. */
-				'label'   => sprintf( __( '%s Font Weight', 'hex' ), $label_name ),
+				'label'    => sprintf( __( '%s Font Weight', 'hex' ), $label_name ),
 			);
 		}
 	}
 
 	$schema['body_font_family']    = array(
-		'group'   => 'typography',
-		'type'    => 'font',
-		'default' => "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-		'label'   => __( 'Body Font Family', 'hex' ),
+		'group'    => 'typography',
+		'subgroup' => __( 'Fonts & Links', 'hex' ),
+		'type'     => 'font',
+		'default'  => "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+		'label'    => __( 'Body Font Family', 'hex' ),
 	);
 	$schema['heading_font_family'] = array(
-		'group'   => 'typography',
-		'type'    => 'font',
-		'default' => "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-		'label'   => __( 'Heading Font Family', 'hex' ),
+		'group'    => 'typography',
+		'subgroup' => __( 'Fonts & Links', 'hex' ),
+		'type'     => 'font',
+		'default'  => "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+		'label'    => __( 'Heading Font Family', 'hex' ),
 	);
 	$schema['link_color']          = array(
-		'group'   => 'typography',
-		'type'    => 'color',
-		'default' => '#2563eb',
-		'label'   => __( 'Link Color', 'hex' ),
+		'group'    => 'typography',
+		'subgroup' => __( 'Fonts & Links', 'hex' ),
+		'type'     => 'color',
+		'default'  => '#2563eb',
+		'label'    => __( 'Link Color', 'hex' ),
 	);
 	$schema['link_hover_color']    = array(
-		'group'   => 'typography',
-		'type'    => 'color',
-		'default' => '#1d4ed8',
-		'label'   => __( 'Link Hover Color', 'hex' ),
+		'group'    => 'typography',
+		'subgroup' => __( 'Fonts & Links', 'hex' ),
+		'type'     => 'color',
+		'default'  => '#1d4ed8',
+		'label'    => __( 'Link Hover Color', 'hex' ),
 	);
 
 	// Spacing.
@@ -444,6 +476,22 @@ function hex_get_style_schema() {
 		);
 	}
 
+	// Fluid typography breakpoints — the shared viewport range every
+	// {level}_size_mobile/_desktop pair interpolates across (see
+	// hex_get_fluid_size_pairs()/hex_build_fluid_clamp()).
+	$schema['fluid_mobile_breakpoint']  = array(
+		'group'   => 'global',
+		'type'    => 'length',
+		'default' => '640px',
+		'label'   => __( 'Fluid Typography — Mobile Breakpoint', 'hex' ),
+	);
+	$schema['fluid_desktop_breakpoint'] = array(
+		'group'   => 'global',
+		'type'    => 'length',
+		'default' => '1600px',
+		'label'   => __( 'Fluid Typography — Desktop Breakpoint', 'hex' ),
+	);
+
 	// Tables.
 	$table_defaults = array(
 		'border_color'      => '#e5e7eb',
@@ -566,12 +614,15 @@ function hex_get_style_groups() {
 }
 
 /**
- * The option name for a schema key.
+ * The form field name/id for a schema key. No longer a literal
+ * wp_options name (values live in a file — see
+ * hex_style_tokens_file_path()) but kept as a stable, prefixed
+ * identifier for the <input>/<label for> pair.
  *
  * @param string $key Schema key, e.g. 'h1_size'.
  * @return string
  */
-function hex_style_option_name( $key ) {
+function hex_style_field_name( $key ) {
 	return 'hex_style_' . $key;
 }
 
@@ -586,32 +637,188 @@ function hex_style_css_var_name( $key ) {
 }
 
 /**
- * Get one style value: the saved option, or the schema default. For
+ * The path to the active child theme's design-token CSS file. Only
+ * meaningful when hex_is_child_theme_active() — this always points at
+ * whichever theme is *currently active*, matching the scope Theme
+ * Options editing is already gated on.
+ *
+ * @return string
+ */
+function hex_style_tokens_file_path() {
+	return get_stylesheet_directory() . '/theme-options.css';
+}
+
+/**
+ * Parse every "--hex-{key}: {value};" custom property declaration out
+ * of a CSS string (expected to be a ":root { ... }" block, but this
+ * doesn't require that shape — it just finds every matching
+ * declaration anywhere in the text, so hand-formatted files with
+ * comments/extra whitespace/other rules around the block still work).
+ * Pure function: no I/O, fully unit-testable.
+ *
+ * @param string $css Raw CSS file contents.
+ * @return array<string,string> Schema-key (underscored) => raw value (trimmed).
+ */
+function hex_parse_style_tokens_css( $css ) {
+	$tokens = array();
+
+	if ( ! preg_match_all( '/--hex-([a-z0-9-]+)\s*:\s*([^;]+);/', (string) $css, $matches, PREG_SET_ORDER ) ) {
+		return $tokens;
+	}
+
+	foreach ( $matches as $match ) {
+		$key            = str_replace( '-', '_', $match[1] );
+		$tokens[ $key ] = trim( $match[2] );
+	}
+
+	return $tokens;
+}
+
+/**
+ * The active child theme's currently-stored design tokens, parsed
+ * fresh from its theme-options.css file on every call. Empty when no
+ * child theme is active or the file doesn't exist yet (e.g. never
+ * saved, and nothing hand-added). Deliberately not cached — this is
+ * admin-only UI code (a Theme Options page render, not a hot
+ * front-end path), and re-parsing a small file per call is cheap
+ * enough that it isn't worth the risk of a stale value surviving a
+ * save within the same request.
+ *
+ * @return array<string,string>
+ */
+function hex_get_child_theme_tokens() {
+	if ( ! hex_is_child_theme_active() ) {
+		return array();
+	}
+
+	$path = hex_style_tokens_file_path();
+	if ( ! file_exists( $path ) ) {
+		return array();
+	}
+
+	return hex_parse_style_tokens_css( file_get_contents( $path ) ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- reading a local theme file, not a remote/user-supplied path.
+}
+
+/**
+ * Guess a sanitize/render type for a token found in the file but not
+ * in hex_get_style_schema() — i.e. one a child-theme developer added
+ * by hand. Deliberately never guesses 'weight' or 'shadow': both are
+ * closed enumerations that are syntactically indistinguishable from
+ * an arbitrary short string, so a wrong guess could silently coerce a
+ * legitimate value into a <select> that can't represent it. Pure
+ * function.
+ *
+ * @param string $value The token's current raw value.
+ * @return string One of 'color', 'length', 'number', 'font', 'custom'.
+ */
+function hex_guess_style_type( $value ) {
+	if ( null !== hex_sanitize_style_color( $value ) ) {
+		return 'color';
+	}
+
+	if ( '0' === $value || preg_match( '/^-?\d+(\.\d+)?(rem|em|px|%)$/', $value ) ) {
+		return 'length';
+	}
+
+	if ( preg_match( '/^\d+(\.\d+)?$/', $value ) ) {
+		return 'number';
+	}
+
+	if ( false !== strpos( $value, ',' ) && hex_is_safe_font_value( $value ) ) {
+		return 'font';
+	}
+
+	return 'custom';
+}
+
+/**
+ * Merge the static schema with any tokens found in the child theme's
+ * file that aren't part of it — each becomes a new field in a
+ * 'custom' group, type-guessed via hex_guess_style_type(), labeled by
+ * humanizing its key. Pure function.
+ *
+ * @param array<string,array>  $schema Static schema, e.g. hex_get_style_schema().
+ * @param array<string,string> $tokens Parsed file tokens, e.g. hex_get_child_theme_tokens().
+ * @return array<string,array>
+ */
+function hex_merge_style_schema_with_tokens( array $schema, array $tokens ) {
+	foreach ( $tokens as $key => $value ) {
+		if ( isset( $schema[ $key ] ) ) {
+			continue;
+		}
+
+		$schema[ $key ] = array(
+			'group'   => 'custom',
+			'type'    => hex_guess_style_type( $value ),
+			'default' => $value,
+			'label'   => hex_style_humanize_key( $key ),
+		);
+	}
+
+	return $schema;
+}
+
+/**
+ * The effective schema: the static schema plus any auto-detected
+ * custom tokens, recomputed on every call — see
+ * hex_get_child_theme_tokens() for why this isn't cached.
+ *
+ * @return array<string,array>
+ */
+function hex_get_effective_style_schema() {
+	return hex_merge_style_schema_with_tokens( hex_get_style_schema(), hex_get_child_theme_tokens() );
+}
+
+/**
+ * The effective groups for the current request: the static 12 groups,
+ * plus a 'Custom Tokens' group appended only if at least one
+ * auto-detected field actually needs it (never an empty tab).
+ *
+ * @return array<string,string>
+ */
+function hex_get_effective_style_groups() {
+	$groups = hex_get_style_groups();
+
+	foreach ( hex_get_effective_style_schema() as $field ) {
+		if ( 'custom' === $field['group'] ) {
+			$groups['custom'] = __( 'Custom Tokens', 'hex' );
+			break;
+		}
+	}
+
+	return $groups;
+}
+
+/**
+ * Get one style value: whatever the active child theme's file
+ * currently has for this key, or the schema default. For
  * 'shadow'-type fields this returns the raw stored keyword (e.g.
  * "md"), not the resolved CSS — resolution happens only where it's
- * actually needed, in hex_render_style_css_vars().
+ * actually needed, in hex_build_style_tokens_css().
  *
  * @param string $key Schema key.
  * @return string
  */
 function hex_get_style_value( $key ) {
-	$schema = hex_get_style_schema();
+	$schema = hex_get_effective_style_schema();
 	if ( ! isset( $schema[ $key ] ) ) {
 		return '';
 	}
 
-	return trim( (string) get_option( hex_style_option_name( $key ), $schema[ $key ]['default'] ) );
+	$tokens = hex_get_child_theme_tokens();
+
+	return trim( (string) ( isset( $tokens[ $key ] ) ? $tokens[ $key ] : $schema[ $key ]['default'] ) );
 }
 
 /**
- * Get every style value, keyed by schema key.
+ * Get every effective style value, keyed by schema key.
  *
  * @return array<string,string>
  */
-function hex_get_all_style_values() {
+function hex_get_effective_style_values() {
 	$values = array();
 
-	foreach ( array_keys( hex_get_style_schema() ) as $key ) {
+	foreach ( array_keys( hex_get_effective_style_schema() ) as $key ) {
 		$values[ $key ] = hex_get_style_value( $key );
 	}
 
@@ -625,9 +832,10 @@ function hex_get_all_style_values() {
  * numbers/weights, rejects anything that could break out of the
  * declaration (quotes, parens, semicolons, url(), etc.). Sanitize
  * callbacks already enforce this at save time; this is a second,
- * independent check at output time in case an option was ever set
- * some other way. Not applied to 'shadow'-type or 'font'-type values
- * — those are handled separately in hex_render_style_css_vars().
+ * independent check when the file is (re)written in
+ * hex_build_style_tokens_css(), in case a value ever got into the
+ * file some other way (e.g. hand-edited). Not applied to 'shadow'-type
+ * or 'font'-type or 'custom'-type values — those have their own checks.
  *
  * @param string $value Value to check.
  * @return bool
@@ -649,27 +857,98 @@ function hex_is_safe_font_value( $value ) {
 }
 
 /**
- * Print the current style values as CSS custom properties on :root.
+ * Which computed "--hex-{output}" fluid-typography vars are derived
+ * from which mobile/desktop schema key pair — see
+ * hex_build_fluid_clamp(). The output keys here are NOT schema
+ * entries themselves; they only ever appear as an appended,
+ * output-only declaration in hex_build_style_tokens_css().
  *
- * Runs on every front-end request regardless of whether a child theme
- * is active — the *values* always apply; only *editing* them (the
- * Theme Options admin page) is gated on an active child theme.
- *
- * @return void
+ * @return array<string,array{0:string,1:string}> Output key => array( mobile key, desktop key ).
  */
-function hex_render_style_css_vars() {
-	$schema       = hex_get_style_schema();
+function hex_get_fluid_size_pairs() {
+	$pairs = array();
+
+	foreach ( array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'body', 'lead', 'large', 'small', 'meta' ) as $key ) {
+		$pairs[ "{$key}_size" ] = array( "{$key}_size_mobile", "{$key}_size_desktop" );
+	}
+
+	return $pairs;
+}
+
+/**
+ * Build a fluid CSS clamp() expression that linearly interpolates a
+ * property between a mobile value (at the mobile breakpoint) and a
+ * desktop value (at the desktop breakpoint), with no media queries —
+ * the standard CSS-only fluid-type formula. Pure function.
+ *
+ * Collapses to a flat value when mobile === desktop (no need for a
+ * clamp() at all), and falls back to the desktop value if the two
+ * breakpoints are equal (avoids a division by zero in the browser).
+ *
+ * @param string $mobile     Value at the mobile breakpoint, e.g. '1.75rem'.
+ * @param string $desktop    Value at the desktop breakpoint, e.g. '2.5rem'.
+ * @param string $mobile_bp  Mobile breakpoint, e.g. '640px'.
+ * @param string $desktop_bp Desktop breakpoint, e.g. '1600px'.
+ * @return string|null The clamp() expression (or flat value), or null if any input is unsafe.
+ */
+function hex_build_fluid_clamp( $mobile, $desktop, $mobile_bp, $desktop_bp ) {
+	foreach ( array( $mobile, $desktop, $mobile_bp, $desktop_bp ) as $value ) {
+		if ( ! hex_is_safe_style_value( $value ) ) {
+			return null;
+		}
+	}
+
+	if ( $mobile === $desktop ) {
+		return $mobile;
+	}
+
+	if ( $mobile_bp === $desktop_bp ) {
+		return $desktop;
+	}
+
+	return sprintf(
+		'clamp(%1$s, calc(%1$s + (%2$s - %1$s) * ((100vw - %3$s) / (%4$s - %3$s))), %2$s)',
+		$mobile,
+		$desktop,
+		$mobile_bp,
+		$desktop_bp
+	);
+}
+
+/**
+ * Build the full contents of the child theme's design-token CSS file
+ * from a set of token values — re-validates every value by its
+ * schema type before writing (shadow keywords resolved to their real
+ * CSS, everything else re-checked with the same safety predicates
+ * hex_get_style_value() callers rely on), silently omitting anything
+ * that fails so one bad value can't corrupt the rest of the file.
+ * Also appends a derived fluid clamp() declaration for every pair in
+ * hex_get_fluid_size_pairs() — see hex_build_fluid_clamp(). Pure
+ * function: no I/O.
+ *
+ * @param array<string,string> $tokens Key => value, e.g. hex_get_effective_style_values() merged with submitted overrides.
+ * @param array<string,array>  $schema Effective schema, e.g. hex_get_effective_style_schema().
+ * @return string Full CSS file contents, including the ":root {}" block.
+ */
+function hex_build_style_tokens_css( array $tokens, array $schema ) {
 	$shadows      = hex_get_shadow_presets();
+	$fluid_pairs  = hex_get_fluid_size_pairs();
 	$declarations = array();
 
-	foreach ( hex_get_all_style_values() as $key => $value ) {
+	foreach ( $tokens as $key => $value ) {
+		if ( isset( $fluid_pairs[ $key ] ) ) {
+			// Output-only key (e.g. a leftover "h1_size" from before this
+			// pair existed) — never written verbatim, always recomputed below.
+			continue;
+		}
+
 		$type = isset( $schema[ $key ]['type'] ) ? $schema[ $key ]['type'] : 'length';
 
 		if ( 'shadow' === $type ) {
 			if ( ! array_key_exists( $value, $shadows ) ) {
 				continue;
 			}
-			$declarations[] = sprintf( '%s:%s;', hex_style_css_var_name( $key ), $shadows[ $value ] );
+			$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $shadows[ $value ] );
 			continue;
 		}
 
@@ -677,7 +956,15 @@ function hex_render_style_css_vars() {
 			if ( ! hex_is_safe_font_value( $value ) ) {
 				continue;
 			}
-			$declarations[] = sprintf( '%s:%s;', hex_style_css_var_name( $key ), $value );
+			$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
+			continue;
+		}
+
+		if ( 'custom' === $type ) {
+			if ( null === hex_sanitize_style_custom( $value ) ) {
+				continue;
+			}
+			$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
 			continue;
 		}
 
@@ -685,50 +972,68 @@ function hex_render_style_css_vars() {
 			continue;
 		}
 
-		$declarations[] = sprintf( '%s:%s;', hex_style_css_var_name( $key ), $value );
+		$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
 	}
 
-	if ( empty( $declarations ) ) {
+	$mobile_bp  = isset( $tokens['fluid_mobile_breakpoint'] ) ? $tokens['fluid_mobile_breakpoint'] : '';
+	$desktop_bp = isset( $tokens['fluid_desktop_breakpoint'] ) ? $tokens['fluid_desktop_breakpoint'] : '';
+
+	foreach ( $fluid_pairs as $output_key => $pair ) {
+		list( $mobile_key, $desktop_key ) = $pair;
+
+		if ( ! isset( $tokens[ $mobile_key ], $tokens[ $desktop_key ] ) ) {
+			continue;
+		}
+
+		$clamp = hex_build_fluid_clamp( $tokens[ $mobile_key ], $tokens[ $desktop_key ], $mobile_bp, $desktop_bp );
+
+		if ( null === $clamp ) {
+			continue;
+		}
+
+		$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $output_key ), $clamp );
+	}
+
+	return sprintf(
+		"/**\n * Hexnity WP Theme Options — design tokens.\n *\n * Managed by the Theme Options admin page, which fully regenerates\n * this file on every save. You can also hand-edit it or add new\n * \"--hex-*\" custom properties yourself — anything new here is\n * auto-detected on the next Theme Options page load and appears as\n * an editable field under \"Custom Tokens\". Reference a token from\n * your own CSS as var(--hex-your-key, fallback).\n *\n * See knoladge/child-theme-css-token-architecture.md.\n */\n:root {\n%s\n}\n",
+		implode( "\n", $declarations )
+	);
+}
+
+/**
+ * Enqueue the active child theme's design-token CSS file directly, if
+ * one has been saved (or hand-created). Nothing is enqueued when no
+ * child theme is active or the file doesn't exist yet — the front end
+ * still renders correctly in that case, since every var(--hex-key,
+ * default) usage in assets/css/src/site-theme.css carries its own
+ * independent CSS-level fallback.
+ *
+ * @return void
+ */
+function hex_enqueue_child_theme_tokens() {
+	if ( ! hex_is_child_theme_active() ) {
 		return;
 	}
 
-	printf( '<style id="hex-style-vars">:root{%s}</style>' . "\n", implode( '', $declarations ) ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- every value passed a type-appropriate safety check above.
+	$path = hex_style_tokens_file_path();
+	if ( ! file_exists( $path ) ) {
+		return;
+	}
+
+	wp_enqueue_style(
+		'hex-theme-options-tokens',
+		get_stylesheet_directory_uri() . '/theme-options.css',
+		array( 'hex-tailwind' ),
+		filemtime( $path )
+	);
 }
-add_action( 'wp_head', 'hex_render_style_css_vars' );
+add_action( 'wp_enqueue_scripts', 'hex_enqueue_child_theme_tokens' );
 
 /**
- * Resolve a "sanitize_option_hex_style_{key}" filter's own option name
- * back to its schema key.
- *
- * @param string $option_name Full option name, e.g. 'hex_style_h1_size'.
- * @return string Schema key, e.g. 'h1_size'.
- */
-function hex_style_key_from_option_name( $option_name ) {
-	return preg_replace( '/^hex_style_/', '', $option_name );
-}
-
-/**
- * Get the value to fall back to when a submitted value fails
- * validation — whatever is currently saved (or the schema default),
- * so a bad submission never overwrites a good value with something
- * empty or invalid. Reads the option name from the current
- * "sanitize_option_{name}" filter context.
- *
- * @return string
- */
-function hex_style_revert_from_filter() {
-	$key = hex_style_key_from_option_name( str_replace( 'sanitize_option_', '', current_filter() ) );
-
-	return hex_get_style_value( $key );
-}
-
-/**
- * Sanitize a CSS length value (rem/em/px/%, or bare "0"). Rejects and
- * keeps whatever was previously saved rather than ever storing an
- * empty/invalid value.
+ * Sanitize a CSS length value (rem/em/px/%, or bare "0").
  *
  * @param string $value Raw submitted value.
- * @return string
+ * @return string|null Sanitized value, or null if invalid.
  */
 function hex_sanitize_style_length( $value ) {
 	$value = trim( (string) $value );
@@ -737,20 +1042,14 @@ function hex_sanitize_style_length( $value ) {
 		return $value;
 	}
 
-	add_settings_error(
-		'hex_style_options',
-		'hex_style_invalid_length',
-		__( 'Enter a valid CSS length (e.g. 1.5rem, -0.02em, 24px, 100%, or 0) — the previous value was kept.', 'hex' )
-	);
-
-	return hex_style_revert_from_filter();
+	return null;
 }
 
 /**
  * Sanitize a bare unitless number (e.g. a line-height like "1.5").
  *
  * @param string $value Raw submitted value.
- * @return string
+ * @return string|null Sanitized value, or null if invalid.
  */
 function hex_sanitize_style_number( $value ) {
 	$value = trim( (string) $value );
@@ -759,20 +1058,14 @@ function hex_sanitize_style_number( $value ) {
 		return $value;
 	}
 
-	add_settings_error(
-		'hex_style_options',
-		'hex_style_invalid_number',
-		__( 'Enter a plain number (e.g. 1.5) — the previous value was kept.', 'hex' )
-	);
-
-	return hex_style_revert_from_filter();
+	return null;
 }
 
 /**
  * Sanitize a hex color value.
  *
  * @param string $value Raw submitted value.
- * @return string
+ * @return string|null Sanitized value, or null if invalid.
  */
 function hex_sanitize_style_color( $value ) {
 	$sanitized = sanitize_hex_color( $value );
@@ -781,20 +1074,14 @@ function hex_sanitize_style_color( $value ) {
 		return $sanitized;
 	}
 
-	add_settings_error(
-		'hex_style_options',
-		'hex_style_invalid_color',
-		__( 'Enter a valid hex color (e.g. #2563eb) — the previous value was kept.', 'hex' )
-	);
-
-	return hex_style_revert_from_filter();
+	return null;
 }
 
 /**
  * Sanitize a font weight (100-900, step 100).
  *
  * @param string $value Raw submitted value.
- * @return string
+ * @return string|null Sanitized value, or null if invalid.
  */
 function hex_sanitize_style_weight( $value ) {
 	$value = trim( (string) $value );
@@ -803,20 +1090,14 @@ function hex_sanitize_style_weight( $value ) {
 		return $value;
 	}
 
-	add_settings_error(
-		'hex_style_options',
-		'hex_style_invalid_weight',
-		__( 'Choose a font weight between 100 and 900 — the previous value was kept.', 'hex' )
-	);
-
-	return hex_style_revert_from_filter();
+	return null;
 }
 
 /**
  * Sanitize a shadow preset keyword.
  *
  * @param string $value Raw submitted value.
- * @return string
+ * @return string|null Sanitized value, or null if invalid.
  */
 function hex_sanitize_style_shadow( $value ) {
 	$value = trim( (string) $value );
@@ -825,20 +1106,14 @@ function hex_sanitize_style_shadow( $value ) {
 		return $value;
 	}
 
-	add_settings_error(
-		'hex_style_options',
-		'hex_style_invalid_shadow',
-		__( 'Choose a valid shadow preset — the previous value was kept.', 'hex' )
-	);
-
-	return hex_style_revert_from_filter();
+	return null;
 }
 
 /**
  * Sanitize a font-family list.
  *
  * @param string $value Raw submitted value.
- * @return string
+ * @return string|null Sanitized value, or null if invalid.
  */
 function hex_sanitize_style_font( $value ) {
 	$value = trim( (string) $value );
@@ -847,13 +1122,73 @@ function hex_sanitize_style_font( $value ) {
 		return $value;
 	}
 
-	add_settings_error(
-		'hex_style_options',
-		'hex_style_invalid_font',
-		__( 'Enter a valid font-family list (letters, spaces, commas, hyphens, and quotes only) — the previous value was kept.', 'hex' )
-	);
+	return null;
+}
 
-	return hex_style_revert_from_filter();
+/**
+ * Sanitize a generic "custom" token value — an auto-detected field
+ * whose real shape we don't know, so this is deliberately narrower
+ * than a "just about any CSS value" charset: no ":" at all (kills
+ * "javascript:"/"data:"/"url(...)" pseudo-protocols outright), no
+ * quotes (a font-family list should use the 'font' type instead), and
+ * an explicit reject on a "url(" substring even though parens are
+ * otherwise allowed (needed for e.g. "rgba(0,0,0,.5)" or
+ * "calc(...)"). Capped at 200 characters against pathological input.
+ *
+ * @param string $value Raw submitted value.
+ * @return string|null Sanitized value, or null if invalid.
+ */
+function hex_sanitize_style_custom( $value ) {
+	$value = trim( (string) $value );
+
+	if ( '' === $value || strlen( $value ) > 200 ) {
+		return null;
+	}
+
+	if ( false !== stripos( $value, 'url(' ) ) {
+		return null;
+	}
+
+	if ( preg_match( '/^[a-zA-Z0-9 .,+\-\/#%()]+$/', $value ) ) {
+		return $value;
+	}
+
+	return null;
+}
+
+/**
+ * Sanitize a set of submitted style-token values against the
+ * effective schema — each value is sanitized by its type's callback;
+ * anything that fails falls back to its current value, and the
+ * field's label is recorded so the caller can report which fields
+ * were rejected. Pure function: no I/O, no superglobal access.
+ *
+ * @param array<string,string> $submitted Raw submitted values, keyed by schema key.
+ * @param array<string,array>  $schema    Effective schema, e.g. hex_get_effective_style_schema().
+ * @param array<string,string> $current   Current values to fall back to, e.g. hex_get_effective_style_values().
+ * @return array{tokens: array<string,string>, rejected: string[]}
+ */
+function hex_sanitize_submitted_style_tokens( array $submitted, array $schema, array $current ) {
+	$tokens   = array();
+	$rejected = array();
+
+	foreach ( $schema as $key => $field ) {
+		$raw_value = isset( $submitted[ $key ] ) ? $submitted[ $key ] : '';
+		$callback  = hex_style_sanitize_callback_for_type( $field['type'] );
+		$sanitized = call_user_func( $callback, $raw_value );
+
+		if ( null === $sanitized ) {
+			$sanitized  = isset( $current[ $key ] ) ? $current[ $key ] : $field['default'];
+			$rejected[] = $field['label'];
+		}
+
+		$tokens[ $key ] = $sanitized;
+	}
+
+	return array(
+		'tokens'   => $tokens,
+		'rejected' => $rejected,
+	);
 }
 
 /**
@@ -870,6 +1205,7 @@ function hex_style_sanitize_callback_for_type( $type ) {
 		'weight' => 'hex_sanitize_style_weight',
 		'shadow' => 'hex_sanitize_style_shadow',
 		'font'   => 'hex_sanitize_style_font',
+		'custom' => 'hex_sanitize_style_custom',
 	);
 
 	return isset( $callbacks[ $type ] ) ? $callbacks[ $type ] : 'hex_sanitize_style_length';

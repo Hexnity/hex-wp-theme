@@ -116,6 +116,21 @@ compile. Not yet viewed in a live browser (see Known gaps).
 - All admin-only files (`inc/admin/*`) are only `require`d when
   `is_admin()` is true (see `functions.php`), so none of this loads on
   front-end requests.
+- The Theme Options page's left-category tab buttons (`.hex-tab-btn`,
+  `inc/admin/page-theme-options.php`) are bare `<button>` elements, so
+  they keep the browser's native white/bordered widget chrome in this
+  Preflight-less build unless explicitly reset — `appearance-none`
+  alone does *not* clear that (it stops the native widget paint, not
+  the UA stylesheet's own `background-color`/`border`). The
+  `.hex-tab-btn` component class in `assets/css/src/admin.css` sets
+  `appearance-none border-none! bg-black! text-white!` for a flush
+  black resting state. Because its `@layer components` block is
+  declared after `@layer utilities` in that file, the page's
+  `hover:bg-gray-800!` and the JS-toggled active `bg-indigo-600!`
+  (`assets/js/admin.js`) are both marked `!important` too, so they
+  still win over the component's background on hover/active — see
+  `knoladge/admin-bare-button-reset-and-layer-order.md` for why plain
+  (non-important) utilities would have lost that fight.
 
 ## Files involved
 

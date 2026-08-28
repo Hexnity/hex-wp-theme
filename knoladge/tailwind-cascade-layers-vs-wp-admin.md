@@ -45,6 +45,32 @@ modifier is the correct, permanent fix here (not a hack to be
 "cleaned up later") since the layer mismatch is structural and won't
 resolve itself.
 
+## Recurrence (2026-08-27)
+
+Two more instances surfaced from a user screenshot with arrows pointing
+at unreadable text:
+
+1. **A mangled `!`-modifier silently drops the whole utility.**
+   `inc/admin/partials.php`'s nav links had `text-white/6!0!` (and the
+   footer had `text-white/4!0!`) — the `!` had been inserted mid-token
+   instead of at the end (`text-white/60!`). Tailwind can't parse that
+   as any valid utility, so it compiles to *nothing*: no color rule at
+   all is emitted, and the link falls all the way back to WP core's
+   unlayered `a { color }` (the exact failure mode above). The bug
+   looks like a plain color problem in the browser; the actual defect
+   is a malformed class string that never reached the CSS. Always
+   check the compiled `tailwind-admin.css` for the expected selector
+   after touching one of these strings — don't just eyeball the PHP.
+2. **`do_settings_sections()`'s own `<h2>` has no class to hang a fix
+   on.** It prints a bare, unclassed `<h2>{title}</h2>` as a direct
+   child of the settings `<form>` — no Tailwind utility was ever
+   applied to it, so there was nothing to add `!` to. Fixed with a
+   plain scoped selector instead of a utility: `.hex-admin form > h2 {
+   @apply ... text-white!; }` in `assets/css/src/admin.css`. The `!`
+   is still needed on the property itself (WP core's unlayered rule
+   still applies to `<h2>` inside `.wrap`), but the *selector* has to
+   be handwritten CSS since there's no class on the element to modify.
+
 ## Related
 
 [[brand-styling]] (features/) — the Tailwind admin build this affects.

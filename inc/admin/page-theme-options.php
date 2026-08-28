@@ -2,13 +2,16 @@
 /**
  * Theme Options page: the full design-token schema (~146 fields
  * across 12 groups — typography, spacing, colors, buttons, forms,
- * cards, sections, global radius, tables, alerts, badges, icons), in
- * a left-category / right-panel tabbed layout (assets/js/admin.js
- * drives the tab switching and the color-swatch/text-field sync).
- * Editing is gated on an active child theme, so style customizations
- * always live somewhere that survives a parent theme update — the
- * values themselves still apply on the front end regardless (see
- * inc/style-settings.php).
+ * cards, sections, global radius, tables, alerts, badges, icons) plus
+ * any auto-detected "Custom Tokens", in a left-category / right-panel
+ * tabbed layout (assets/js/admin.js drives the tab switching and the
+ * color-swatch/text-field sync). Editing is gated on an active child
+ * theme, since values are saved into a CSS file inside it (see
+ * inc/style-settings.php, knoladge/child-theme-css-token-architecture.md)
+ * — the values themselves still apply on the front end regardless.
+ * Saved via a dedicated admin-post handler
+ * (hex_handle_save_style_options(), inc/admin/handlers.php), not the
+ * Settings API.
  *
  * @package Hex
  */
@@ -28,8 +31,9 @@ function hex_render_theme_options_page() {
 	}
 
 	$active = hex_is_child_theme_active();
-	$groups = hex_get_style_groups();
-	$count  = count( hex_get_style_schema() );
+	$groups = hex_get_effective_style_groups();
+	$count  = count( hex_get_effective_style_schema() );
+	$log    = get_transient( 'hex_theme_options_log' );
 	?>
 	<?php
 	hex_render_admin_shell_start(
@@ -43,7 +47,9 @@ function hex_render_theme_options_page() {
 	);
 	?>
 
-	<?php settings_errors(); ?>
+	<?php if ( $log ) : ?>
+		<div class="mb-6 rounded-lg border border-indigo-800/50 bg-indigo-950/40 px-4 py-3 text-sm text-indigo-200!"><?php echo esc_html( $log ); ?></div>
+	<?php endif; ?>
 
 	<?php if ( ! $active ) : ?>
 		<div class="mb-6 flex items-start gap-3 rounded-lg border border-amber-700/60 bg-amber-950/40 px-4 py-3 text-sm text-amber-200!">
@@ -57,8 +63,9 @@ function hex_render_theme_options_page() {
 		</div>
 	<?php endif; ?>
 
-	<form method="post" action="options.php">
-		<?php settings_fields( 'hex_style_options' ); ?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php wp_nonce_field( 'hex_save_style_options' ); ?>
+		<input type="hidden" name="action" value="hex_save_style_options">
 		<fieldset <?php disabled( $active, false ); ?> class="block">
 			<div class="hex-options-shell flex flex-col gap-6 lg:flex-row" data-hex-tabs>
 				<nav
@@ -69,7 +76,7 @@ function hex_render_theme_options_page() {
 					<?php foreach ( $groups as $group => $label ) : ?>
 						<button
 							type="button"
-							class="hex-tab-btn flex shrink-0 items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium text-gray-400! transition-colors hover:bg-gray-800 hover:text-gray-200! lg:w-full"
+							class="hex-tab-btn flex shrink-0 items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors hover:bg-gray-800! lg:w-full"
 							data-hex-tab-target="<?php echo esc_attr( $group ); ?>"
 						>
 							<?php echo esc_html( $label ); ?>
