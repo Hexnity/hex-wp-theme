@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <article id="post-<?php the_ID(); ?>" <?php post_class( 'entry animate__animated animate__fadeIn' ); ?>>
 	<?php if ( hex_should_show_title() ) : ?>
 		<header class="entry-header mb-6">
-			<?php the_title( '<h1 class="entry-title text-h1">', '</h1>' ); ?>
+			<?php the_title( '<h1 class="entry-title hex-h1">', '</h1>' ); ?>
 		</header>
 	<?php endif; ?>
 
@@ -26,7 +26,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		wp_link_pages(
 			array(
-				'before' => '<div class="page-links mt-6 text-small">' . esc_html__( 'Pages:', 'hex' ),
+				'before' => '<div class="page-links mt-6 hex-small">' . esc_html__( 'Pages:', 'hex' ),
 				'after'  => '</div>',
 			)
 		);

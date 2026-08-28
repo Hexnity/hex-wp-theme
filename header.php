@@ -31,7 +31,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<?php if ( has_custom_logo() ) : ?>
 					<?php the_custom_logo(); ?>
 				<?php else : ?>
-					<p class="site-title m-0 text-large font-semibold">
+					<p class="site-title m-0 hex-large font-semibold">
 						<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="hover:text-gray-600" rel="home">
 							<?php bloginfo( 'name' ); ?>
 						</a>
@@ -54,7 +54,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						'menu_id'        => 'primary-menu',
 						'container'      => false,
 						'fallback_cb'    => false,
-						'menu_class'     => 'hidden md:flex flex-col md:flex-row gap-2 md:gap-6 text-sm w-full md:w-auto mt-3 md:mt-0 [&_a]:block [&_a]:py-1 [&_a:hover]:text-gray-500',
+						'menu_class'     => 'nav-menu hidden md:flex flex-col md:flex-row w-full md:w-auto mt-3 md:mt-0',
 					)
 				);
 				?>

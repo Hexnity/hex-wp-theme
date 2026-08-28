@@ -16,7 +16,7 @@ get_header();
 	<?php if ( have_posts() ) : ?>
 		<header class="page-header animate__animated animate__fadeIn mb-8">
 			<?php
-			the_archive_title( '<h1 class="page-title text-h1">', '</h1>' );
+			the_archive_title( '<h1 class="page-title hex-h1">', '</h1>' );
 			the_archive_description( '<div class="archive-description prose mt-2 max-w-none">', '</div>' );
 			?>
 		</header>

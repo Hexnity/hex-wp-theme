@@ -1,11 +1,15 @@
 <?php
 /**
- * Theme Options page: the full design-token schema (~146 fields
+ * Theme Options page: the full design-token schema (~150 fields
  * across 12 groups — typography, spacing, colors, buttons, forms,
  * cards, sections, global radius, tables, alerts, badges, icons) plus
  * any auto-detected "Custom Tokens", in a left-category / right-panel
  * tabbed layout (assets/js/admin.js drives the tab switching and the
- * color-swatch/text-field sync). Editing is gated on an active child
+ * color-swatch/text-field sync). Within a tab, a loop-built field
+ * family (H1, Primary button, Success alert, etc.) with more than one
+ * distinct 'subgroup' renders as a collapsible accordion instead of
+ * one flat list — see hex_render_style_group_fields()
+ * (inc/admin/settings.php). Editing is gated on an active child
  * theme, since values are saved into a CSS file inside it (see
  * inc/style-settings.php, knoladge/child-theme-css-token-architecture.md)
  * — the values themselves still apply on the front end regardless.
@@ -87,15 +91,22 @@ function hex_render_theme_options_page() {
 				<div class="min-w-0 flex-1">
 					<?php foreach ( $groups as $group => $label ) : ?>
 						<div class="hex-tab-panel rounded-xl border border-gray-800 bg-gray-900" data-hex-tab-panel="<?php echo esc_attr( $group ); ?>">
-							<div class="border-b border-gray-800 px-6 py-4">
+							<div class="flex items-center justify-between gap-3 border-b border-gray-800 px-6 py-4">
 								<h2 class="m-0 text-sm font-semibold uppercase tracking-wide text-indigo-400!"><?php echo esc_html( $label ); ?></h2>
+								<?php if ( $active ) : ?>
+									<a
+										href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=hex_reset_style_group&group=' . rawurlencode( $group ) ), 'hex_reset_style_group' ) ); ?>"
+										class="text-xs font-medium text-gray-500! hover:text-gray-300!"
+										onclick="return confirm('<?php echo esc_js( __( 'Reset every field in this group back to its default value? This cannot be undone.', 'hex' ) ); ?>');"
+									>
+										<?php esc_html_e( 'Reset to Defaults', 'hex' ); ?>
+									</a>
+								<?php endif; ?>
 							</div>
 							<?php if ( 'typography' === $group ) : ?>
 								<?php hex_render_google_fonts_field(); ?>
 							<?php endif; ?>
-							<div class="grid grid-cols-1 gap-x-6 gap-y-5 p-6 sm:grid-cols-2">
-								<?php hex_render_style_group_fields( $group ); ?>
-							</div>
+							<?php hex_render_style_group_fields( $group ); ?>
 						</div>
 					<?php endforeach; ?>
 				</div>

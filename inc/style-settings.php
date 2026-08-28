@@ -68,29 +68,44 @@ function hex_get_shadow_presets() {
  * 'color' (hex color), 'weight' (100-900 step 100), 'shadow' (a
  * hex_get_shadow_presets() keyword), 'font' (a safe font-family list).
  *
- * @return array<string,array{group:string,type:string,default:string,label:string}>
+ * An entry may also carry an optional 'subgroup' — a human label
+ * (e.g. 'H1', 'Primary') shared by every field in one loop-built
+ * family. hex_render_style_group_fields() (inc/admin/settings.php)
+ * uses it to render each family as its own collapsible accordion
+ * section within a Theme Options tab, instead of dumping every field
+ * in the tab into one flat list. A group with zero or one distinct
+ * subgroup renders flat (no accordion chrome) — this is opt-in per
+ * family, not required on every entry.
+ *
+ * @return array<string,array{group:string,subgroup?:string,type:string,default:string,label:string}>
  */
 function hex_get_style_schema() {
 	$schema = array();
 
-	// Typography: heading levels — size, line-height, letter-spacing, weight, margin-bottom.
+	// Typography: heading levels — mobile size, desktop size,
+	// line-height, letter-spacing, weight, margin-bottom. Mobile/desktop
+	// sizes are deliberately different (not the same value repeated) so
+	// every heading is fluid out of the box — desktop matches this
+	// theme's original (pre-1.5.6) static sizes so the desktop-viewport
+	// look is unchanged; mobile is a proportionally smaller value,
+	// compressed more for the larger heading levels.
 	$heading_defaults = array(
-		'h1' => array( '2.5rem', '1.2', '-0.02em', '700', '1.5rem' ),
-		'h2' => array( '2rem', '1.25', '-0.01em', '700', '1.25rem' ),
-		'h3' => array( '1.75rem', '1.3', '-0.01em', '600', '1rem' ),
-		'h4' => array( '1.5rem', '1.35', '0', '600', '1rem' ),
-		'h5' => array( '1.25rem', '1.4', '0', '600', '0.75rem' ),
-		'h6' => array( '1rem', '1.4', '0.02em', '600', '0.75rem' ),
+		'h1' => array( '28px', '40px', '1.2', '-0.8px', '700', '24px' ),
+		'h2' => array( '24px', '32px', '1.25', '-0.32px', '700', '20px' ),
+		'h3' => array( '22px', '28px', '1.3', '-0.28px', '600', '16px' ),
+		'h4' => array( '20px', '24px', '1.35', '0px', '600', '16px' ),
+		'h5' => array( '18px', '20px', '1.4', '0px', '600', '12px' ),
+		'h6' => array( '15px', '16px', '1.4', '0.32px', '600', '12px' ),
 	);
 	foreach ( $heading_defaults as $level => $defaults ) {
-		list( $size, $line_height, $letter_spacing, $weight, $margin ) = $defaults;
+		list( $size_mobile, $size_desktop, $line_height, $letter_spacing, $weight, $margin ) = $defaults;
 		$upper = strtoupper( $level );
 
 		$schema[ "{$level}_size_mobile" ]    = array(
 			'group'    => 'typography',
 			'subgroup' => $upper,
 			'type'     => 'length',
-			'default'  => $size,
+			'default'  => $size_mobile,
 			/* translators: %s: Heading level, e.g. H1. */
 			'label'    => sprintf( __( '%s Mobile Size', 'hex' ), $upper ),
 		);
@@ -98,7 +113,7 @@ function hex_get_style_schema() {
 			'group'    => 'typography',
 			'subgroup' => $upper,
 			'type'     => 'length',
-			'default'  => $size,
+			'default'  => $size_desktop,
 			/* translators: %s: Heading level, e.g. H1. */
 			'label'    => sprintf( __( '%s Desktop Size', 'hex' ), $upper ),
 		);
@@ -136,23 +151,26 @@ function hex_get_style_schema() {
 		);
 	}
 
-	// Typography: body-level text styles.
+	// Typography: body-level text styles — mobile/desktop sizes are
+	// deliberately different (see the heading loop above for why);
+	// desktop matches the original static size, mobile is a modest
+	// compression (kept small for readability at body-copy sizes).
 	$text_style_defaults = array(
-		'body'  => array( '1rem', '1.6', null, null ),
-		'lead'  => array( '1.25rem', '1.6', null, null ),
-		'large' => array( '1.125rem', '1.6', null, null ),
-		'small' => array( '0.875rem', '1.5', null, null ),
-		'meta'  => array( '0.8125rem', '1.4', '0.03em', '600' ),
+		'body'  => array( '15px', '16px', '1.6', null, null ),
+		'lead'  => array( '18px', '20px', '1.6', null, null ),
+		'large' => array( '16px', '18px', '1.6', null, null ),
+		'small' => array( '13px', '14px', '1.5', null, null ),
+		'meta'  => array( '12px', '13px', '1.4', '0.39px', '600' ),
 	);
 	foreach ( $text_style_defaults as $style => $defaults ) {
-		list( $size, $line_height, $letter_spacing, $weight ) = $defaults;
+		list( $size_mobile, $size_desktop, $line_height, $letter_spacing, $weight ) = $defaults;
 		$label_name = ucfirst( $style );
 
 		$schema[ "{$style}_size_mobile" ]  = array(
 			'group'    => 'typography',
 			'subgroup' => $label_name,
 			'type'     => 'length',
-			'default'  => $size,
+			'default'  => $size_mobile,
 			/* translators: %s: Text style name, e.g. Lead. */
 			'label'    => sprintf( __( '%s Mobile Text Size', 'hex' ), $label_name ),
 		);
@@ -160,7 +178,7 @@ function hex_get_style_schema() {
 			'group'    => 'typography',
 			'subgroup' => $label_name,
 			'type'     => 'length',
-			'default'  => $size,
+			'default'  => $size_desktop,
 			/* translators: %s: Text style name, e.g. Lead. */
 			'label'    => sprintf( __( '%s Desktop Text Size', 'hex' ), $label_name ),
 		);
@@ -225,12 +243,12 @@ function hex_get_style_schema() {
 
 	// Spacing.
 	$spacing_defaults = array(
-		'xs'  => '0.5rem',
-		'sm'  => '1rem',
-		'md'  => '1.5rem',
-		'lg'  => '2rem',
-		'xl'  => '3rem',
-		'2xl' => '4rem',
+		'xs'  => '8px',
+		'sm'  => '16px',
+		'md'  => '24px',
+		'lg'  => '32px',
+		'xl'  => '48px',
+		'2xl' => '64px',
 	);
 	foreach ( $spacing_defaults as $key => $default ) {
 		$schema[ "spacing_{$key}" ] = array(
@@ -281,73 +299,86 @@ function hex_get_style_schema() {
 		$label_name                                  = ucfirst( $variant );
 
 		$schema[ "button_{$variant}_background" ]       = array(
-			'group'   => 'buttons',
-			'type'    => 'color',
-			'default' => $bg,
+			'group'    => 'buttons',
+			'subgroup' => $label_name,
+			'type'     => 'color',
+			'default'  => $bg,
 			/* translators: %s: Button variant name, e.g. Primary. */
-			'label'   => sprintf( __( '%s Background', 'hex' ), $label_name ),
+			'label'    => sprintf( __( '%s Background', 'hex' ), $label_name ),
 		);
 		$schema[ "button_{$variant}_color" ]            = array(
-			'group'   => 'buttons',
-			'type'    => 'color',
-			'default' => $color,
+			'group'    => 'buttons',
+			'subgroup' => $label_name,
+			'type'     => 'color',
+			'default'  => $color,
 			/* translators: %s: Button variant name, e.g. Primary. */
-			'label'   => sprintf( __( '%s Text', 'hex' ), $label_name ),
+			'label'    => sprintf( __( '%s Text', 'hex' ), $label_name ),
 		);
 		$schema[ "button_{$variant}_hover_background" ] = array(
-			'group'   => 'buttons',
-			'type'    => 'color',
-			'default' => $hover_bg,
+			'group'    => 'buttons',
+			'subgroup' => $label_name,
+			'type'     => 'color',
+			'default'  => $hover_bg,
 			/* translators: %s: Button variant name, e.g. Primary. */
-			'label'   => sprintf( __( '%s Hover Background', 'hex' ), $label_name ),
+			'label'    => sprintf( __( '%s Hover Background', 'hex' ), $label_name ),
 		);
 		$schema[ "button_{$variant}_hover_color" ]      = array(
-			'group'   => 'buttons',
-			'type'    => 'color',
-			'default' => $hover_color,
+			'group'    => 'buttons',
+			'subgroup' => $label_name,
+			'type'     => 'color',
+			'default'  => $hover_color,
 			/* translators: %s: Button variant name, e.g. Primary. */
-			'label'   => sprintf( __( '%s Hover Text', 'hex' ), $label_name ),
+			'label'    => sprintf( __( '%s Hover Text', 'hex' ), $label_name ),
 		);
 	}
 	$schema['button_text_color']       = array(
-		'group'   => 'buttons',
-		'type'    => 'color',
-		'default' => '#2563eb',
-		'label'   => __( 'Text Button Color', 'hex' ),
+		'group'    => 'buttons',
+		'subgroup' => __( 'Text & Sizing', 'hex' ),
+		'type'     => 'color',
+		'default'  => '#2563eb',
+		'label'    => __( 'Text Button Color', 'hex' ),
 	);
 	$schema['button_text_hover_color'] = array(
-		'group'   => 'buttons',
-		'type'    => 'color',
-		'default' => '#1d4ed8',
-		'label'   => __( 'Text Button Hover Color', 'hex' ),
+		'group'    => 'buttons',
+		'subgroup' => __( 'Text & Sizing', 'hex' ),
+		'type'     => 'color',
+		'default'  => '#1d4ed8',
+		'label'    => __( 'Text Button Hover Color', 'hex' ),
 	);
 	$schema['button_radius']           = array(
-		'group'   => 'buttons',
-		'type'    => 'length',
-		'default' => '0.375rem',
-		'label'   => __( 'Button Radius', 'hex' ),
+		'group'    => 'buttons',
+		'subgroup' => __( 'Text & Sizing', 'hex' ),
+		'type'     => 'length',
+		'default'  => '6px',
+		'label'    => __( 'Button Radius', 'hex' ),
 	);
 	$schema['button_font_weight']      = array(
-		'group'   => 'buttons',
-		'type'    => 'weight',
-		'default' => '600',
-		'label'   => __( 'Button Font Weight', 'hex' ),
+		'group'    => 'buttons',
+		'subgroup' => __( 'Text & Sizing', 'hex' ),
+		'type'     => 'weight',
+		'default'  => '600',
+		'label'    => __( 'Button Font Weight', 'hex' ),
 	);
 	$button_padding_defaults           = array(
-		'padding_x'    => '1.25rem',
-		'padding_y'    => '0.625rem',
-		'padding_x_sm' => '0.75rem',
-		'padding_y_sm' => '0.375rem',
-		'padding_x_lg' => '1.75rem',
-		'padding_y_lg' => '0.875rem',
+		'padding_x_xs' => '8px',
+		'padding_y_xs' => '4px',
+		'padding_x_sm' => '12px',
+		'padding_y_sm' => '6px',
+		'padding_x'    => '20px',
+		'padding_y'    => '10px',
+		'padding_x_lg' => '28px',
+		'padding_y_lg' => '14px',
+		'padding_x_xl' => '36px',
+		'padding_y_xl' => '18px',
 	);
 	foreach ( $button_padding_defaults as $key => $default ) {
 		$schema[ "button_{$key}" ] = array(
-			'group'   => 'buttons',
-			'type'    => 'length',
-			'default' => $default,
+			'group'    => 'buttons',
+			'subgroup' => __( 'Text & Sizing', 'hex' ),
+			'type'     => 'length',
+			'default'  => $default,
 			/* translators: %s: Humanized field name, e.g. Padding X. */
-			'label'   => sprintf( __( 'Button %s', 'hex' ), hex_style_humanize_key( $key ) ),
+			'label'    => sprintf( __( 'Button %s', 'hex' ), hex_style_humanize_key( $key ) ),
 		);
 	}
 
@@ -368,24 +399,29 @@ function hex_get_style_schema() {
 			'label'   => sprintf( __( 'Form %s', 'hex' ), hex_style_humanize_key( $key ) ),
 		);
 	}
-	$schema['form_radius']    = array(
+	$schema['form_radius'] = array(
 		'group'   => 'forms',
 		'type'    => 'length',
-		'default' => '0.375rem',
+		'default' => '6px',
 		'label'   => __( 'Form Field Radius', 'hex' ),
 	);
-	$schema['form_padding_x'] = array(
-		'group'   => 'forms',
-		'type'    => 'length',
-		'default' => '0.75rem',
-		'label'   => __( 'Form Field Padding X', 'hex' ),
+	$form_padding_defaults = array(
+		'padding_x_sm' => '8px',
+		'padding_y_sm' => '4px',
+		'padding_x'    => '12px',
+		'padding_y'    => '8px',
+		'padding_x_lg' => '16px',
+		'padding_y_lg' => '12px',
 	);
-	$schema['form_padding_y'] = array(
-		'group'   => 'forms',
-		'type'    => 'length',
-		'default' => '0.5rem',
-		'label'   => __( 'Form Field Padding Y', 'hex' ),
-	);
+	foreach ( $form_padding_defaults as $key => $default ) {
+		$schema[ "form_{$key}" ] = array(
+			'group'   => 'forms',
+			'type'    => 'length',
+			'default' => $default,
+			/* translators: %s: Humanized field name, e.g. Padding X Sm. */
+			'label'   => sprintf( __( 'Form Field %s', 'hex' ), hex_style_humanize_key( $key ) ),
+		);
+	}
 
 	// Cards.
 	$schema['card_background']   = array(
@@ -403,13 +439,13 @@ function hex_get_style_schema() {
 	$schema['card_radius']       = array(
 		'group'   => 'cards',
 		'type'    => 'length',
-		'default' => '0.5rem',
+		'default' => '8px',
 		'label'   => __( 'Card Radius', 'hex' ),
 	);
 	$schema['card_padding']      = array(
 		'group'   => 'cards',
 		'type'    => 'length',
-		'default' => '1.5rem',
+		'default' => '24px',
 		'label'   => __( 'Card Padding', 'hex' ),
 	);
 	$schema['card_shadow']       = array(
@@ -434,26 +470,28 @@ function hex_get_style_schema() {
 	);
 	foreach ( $section_bg_defaults as $key => $default ) {
 		$schema[ "section_background_{$key}" ] = array(
-			'group'   => 'sections',
-			'type'    => 'color',
-			'default' => $default,
+			'group'    => 'sections',
+			'subgroup' => __( 'Backgrounds', 'hex' ),
+			'type'     => 'color',
+			'default'  => $default,
 			/* translators: %s: Section background variant name, e.g. Muted. */
-			'label'   => sprintf( __( 'Section Background — %s', 'hex' ), ucfirst( $key ) ),
+			'label'    => sprintf( __( 'Section Background — %s', 'hex' ), ucfirst( $key ) ),
 		);
 	}
 	$section_padding_defaults = array(
-		'sm' => '2rem',
-		'md' => '3rem',
-		'lg' => '4rem',
-		'xl' => '6rem',
+		'sm' => '32px',
+		'md' => '48px',
+		'lg' => '64px',
+		'xl' => '96px',
 	);
 	foreach ( $section_padding_defaults as $key => $default ) {
 		$schema[ "section_padding_{$key}" ] = array(
-			'group'   => 'sections',
-			'type'    => 'length',
-			'default' => $default,
+			'group'    => 'sections',
+			'subgroup' => __( 'Padding', 'hex' ),
+			'type'     => 'length',
+			'default'  => $default,
 			/* translators: %s: Section padding scale key, e.g. SM. */
-			'label'   => sprintf( __( 'Section Padding — %s', 'hex' ), strtoupper( $key ) ),
+			'label'    => sprintf( __( 'Section Padding — %s', 'hex' ), strtoupper( $key ) ),
 		);
 	}
 
@@ -462,9 +500,9 @@ function hex_get_style_schema() {
 	// setting affects every existing and future use of those utilities
 	// site-wide, the way YOOtheme's own global radius setting does.
 	$radius_defaults = array(
-		'sm' => '0.25rem',
-		'md' => '0.5rem',
-		'lg' => '1rem',
+		'sm' => '4px',
+		'md' => '8px',
+		'lg' => '16px',
 	);
 	foreach ( $radius_defaults as $key => $default ) {
 		$schema[ "radius_{$key}" ] = array(
@@ -476,21 +514,28 @@ function hex_get_style_schema() {
 		);
 	}
 
-	// Fluid typography breakpoints — the shared viewport range every
-	// {level}_size_mobile/_desktop pair interpolates across (see
-	// hex_get_fluid_size_pairs()/hex_build_fluid_clamp()).
-	$schema['fluid_mobile_breakpoint']  = array(
-		'group'   => 'global',
-		'type'    => 'length',
-		'default' => '640px',
-		'label'   => __( 'Fluid Typography — Mobile Breakpoint', 'hex' ),
+	// Fluid typography breakpoints — S/M/L/XL, all four admin-editable
+	// (matching the reference implementation this was ported from).
+	// Only S and XL actually feed hex_build_fluid_clamp()'s
+	// interpolation ({level}_size_mobile interpolates to
+	// {level}_size_desktop between these two) — M and L exist for a
+	// child theme's own use (extra discrete breakpoints, e.g. its own
+	// media queries), not consumed by anything in this file.
+	$fluid_breakpoint_defaults = array(
+		's'  => '640px',
+		'm'  => '960px',
+		'l'  => '1200px',
+		'xl' => '1600px',
 	);
-	$schema['fluid_desktop_breakpoint'] = array(
-		'group'   => 'global',
-		'type'    => 'length',
-		'default' => '1600px',
-		'label'   => __( 'Fluid Typography — Desktop Breakpoint', 'hex' ),
-	);
+	foreach ( $fluid_breakpoint_defaults as $key => $default ) {
+		$schema[ "fluid_breakpoint_{$key}" ] = array(
+			'group'   => 'global',
+			'type'    => 'length',
+			'default' => $default,
+			/* translators: %s: Breakpoint scale key, e.g. S. */
+			'label'   => sprintf( __( 'Fluid Typography — Breakpoint %s', 'hex' ), strtoupper( $key ) ),
+		);
+	}
 
 	// Tables.
 	$table_defaults = array(
@@ -519,18 +564,20 @@ function hex_get_style_schema() {
 	foreach ( $alert_states as $state => $defaults ) {
 		list( $bg, $color )                    = $defaults;
 		$schema[ "alert_{$state}_background" ] = array(
-			'group'   => 'alerts',
-			'type'    => 'color',
-			'default' => $bg,
+			'group'    => 'alerts',
+			'subgroup' => ucfirst( $state ),
+			'type'     => 'color',
+			'default'  => $bg,
 			/* translators: %s: Alert state name, e.g. Success. */
-			'label'   => sprintf( __( '%s Alert Background', 'hex' ), ucfirst( $state ) ),
+			'label'    => sprintf( __( '%s Alert Background', 'hex' ), ucfirst( $state ) ),
 		);
 		$schema[ "alert_{$state}_color" ]      = array(
-			'group'   => 'alerts',
-			'type'    => 'color',
-			'default' => $color,
+			'group'    => 'alerts',
+			'subgroup' => ucfirst( $state ),
+			'type'     => 'color',
+			'default'  => $color,
 			/* translators: %s: Alert state name, e.g. Success. */
-			'label'   => sprintf( __( '%s Alert Text', 'hex' ), ucfirst( $state ) ),
+			'label'    => sprintf( __( '%s Alert Text', 'hex' ), ucfirst( $state ) ),
 		);
 	}
 
@@ -545,20 +592,115 @@ function hex_get_style_schema() {
 	foreach ( $badge_variants as $variant => $defaults ) {
 		list( $bg, $color )                      = $defaults;
 		$schema[ "badge_{$variant}_background" ] = array(
-			'group'   => 'badges',
-			'type'    => 'color',
-			'default' => $bg,
+			'group'    => 'badges',
+			'subgroup' => ucfirst( $variant ),
+			'type'     => 'color',
+			'default'  => $bg,
 			/* translators: %s: Badge variant name, e.g. Success. */
-			'label'   => sprintf( __( '%s Badge Background', 'hex' ), ucfirst( $variant ) ),
+			'label'    => sprintf( __( '%s Badge Background', 'hex' ), ucfirst( $variant ) ),
 		);
 		$schema[ "badge_{$variant}_color" ]      = array(
-			'group'   => 'badges',
-			'type'    => 'color',
-			'default' => $color,
+			'group'    => 'badges',
+			'subgroup' => ucfirst( $variant ),
+			'type'     => 'color',
+			'default'  => $color,
 			/* translators: %s: Badge variant name, e.g. Success. */
-			'label'   => sprintf( __( '%s Badge Text', 'hex' ), ucfirst( $variant ) ),
+			'label'    => sprintf( __( '%s Badge Text', 'hex' ), ucfirst( $variant ) ),
 		);
 	}
+
+	// Navigation (primary menu links — header.php's #primary-menu).
+	$nav_color_defaults = array(
+		'link_color'        => '#374151',
+		'link_hover_color'  => '#2563eb',
+		'link_active_color' => '#2563eb',
+	);
+	foreach ( $nav_color_defaults as $key => $default ) {
+		$schema[ "nav_{$key}" ] = array(
+			'group'   => 'nav',
+			'type'    => 'color',
+			'default' => $default,
+			/* translators: %s: Humanized field name, e.g. Link Hover Color. */
+			'label'   => sprintf( __( 'Nav %s', 'hex' ), hex_style_humanize_key( $key ) ),
+		);
+	}
+	$schema['nav_font_weight'] = array(
+		'group'   => 'nav',
+		'type'    => 'weight',
+		'default' => '500',
+		'label'   => __( 'Nav Font Weight', 'hex' ),
+	);
+	$schema['nav_gap']         = array(
+		'group'   => 'nav',
+		'type'    => 'length',
+		'default' => '24px',
+		'label'   => __( 'Nav Item Gap', 'hex' ),
+	);
+
+	// Accordion (CSS-only, <details>/<summary> — no JS).
+	$accordion_color_defaults = array(
+		'background'              => '#ffffff',
+		'border_color'            => '#e5e7eb',
+		'header_background'       => '#f9fafb',
+		'header_color'            => '#111827',
+		'header_hover_background' => '#f3f4f6',
+	);
+	foreach ( $accordion_color_defaults as $key => $default ) {
+		$schema[ "accordion_{$key}" ] = array(
+			'group'   => 'accordion',
+			'type'    => 'color',
+			'default' => $default,
+			/* translators: %s: Humanized field name, e.g. Header Background. */
+			'label'   => sprintf( __( 'Accordion %s', 'hex' ), hex_style_humanize_key( $key ) ),
+		);
+	}
+	$schema['accordion_radius']  = array(
+		'group'   => 'accordion',
+		'type'    => 'length',
+		'default' => '8px',
+		'label'   => __( 'Accordion Radius', 'hex' ),
+	);
+	$schema['accordion_padding'] = array(
+		'group'   => 'accordion',
+		'type'    => 'length',
+		'default' => '16px',
+		'label'   => __( 'Accordion Padding', 'hex' ),
+	);
+	$schema['accordion_gap']     = array(
+		'group'   => 'accordion',
+		'type'    => 'length',
+		'default' => '8px',
+		'label'   => __( 'Accordion Item Gap', 'hex' ),
+	);
+
+	// Tabs (CSS-only, radio-input technique — no JS).
+	$tabs_color_defaults = array(
+		'border_color'        => '#e5e7eb',
+		'label_color'         => '#6b7280',
+		'active_label_color'  => '#2563eb',
+		'active_border_color' => '#2563eb',
+	);
+	foreach ( $tabs_color_defaults as $key => $default ) {
+		$schema[ "tabs_{$key}" ] = array(
+			'group'   => 'tabs',
+			'type'    => 'color',
+			'default' => $default,
+			/* translators: %s: Humanized field name, e.g. Active Label Color. */
+			'label'   => sprintf( __( 'Tabs %s', 'hex' ), hex_style_humanize_key( $key ) ),
+		);
+	}
+	$schema['tabs_gap']     = array(
+		'group'   => 'tabs',
+		'type'    => 'length',
+		'default' => '24px',
+		'label'   => __( 'Tabs Nav Gap', 'hex' ),
+	);
+	$schema['tabs_padding'] = array(
+		'group'   => 'tabs',
+		'type'    => 'length',
+		'default' => '16px',
+		'label'   => __( 'Tabs Panel Padding', 'hex' ),
+	);
 
 	// Icons.
 	$schema['icon_color']       = array(
@@ -574,9 +716,9 @@ function hex_get_style_schema() {
 		'label'   => __( 'Icon Hover Color', 'hex' ),
 	);
 	$icon_size_defaults         = array(
-		'sm' => '1rem',
-		'md' => '1.5rem',
-		'lg' => '2rem',
+		'sm' => '16px',
+		'md' => '24px',
+		'lg' => '32px',
 	);
 	foreach ( $icon_size_defaults as $key => $default ) {
 		$schema[ "icon_size_{$key}" ] = array(
@@ -609,6 +751,9 @@ function hex_get_style_groups() {
 		'tables'     => __( 'Tables', 'hex' ),
 		'alerts'     => __( 'Alerts', 'hex' ),
 		'badges'     => __( 'Badges', 'hex' ),
+		'nav'        => __( 'Navigation', 'hex' ),
+		'accordion'  => __( 'Accordion', 'hex' ),
+		'tabs'       => __( 'Tabs', 'hex' ),
 		'icons'      => __( 'Icons', 'hex' ),
 	);
 }
@@ -737,13 +882,26 @@ function hex_guess_style_type( $value ) {
  * 'custom' group, type-guessed via hex_guess_style_type(), labeled by
  * humanizing its key. Pure function.
  *
+ * Deliberately skips any key that is a hex_get_fluid_size_pairs()
+ * OUTPUT key (e.g. 'h1_size') — hex_build_style_tokens_css() always
+ * recomputes that key from its '{key}_size_mobile'/'_desktop' pair
+ * and never writes it verbatim, so exposing it as an independently
+ * editable "Custom Tokens" field would be a trap: it would look
+ * editable, accept a save, and then silently be discarded on the very
+ * next rebuild. A file saved before the mobile/desktop split existed
+ * (or hand-edited to reintroduce the flat key) still parses this key
+ * out of the file, so without this guard it would surface exactly
+ * that trap. See knoladge/fluid-typography-clamp.md.
+ *
  * @param array<string,array>  $schema Static schema, e.g. hex_get_style_schema().
  * @param array<string,string> $tokens Parsed file tokens, e.g. hex_get_child_theme_tokens().
  * @return array<string,array>
  */
 function hex_merge_style_schema_with_tokens( array $schema, array $tokens ) {
+	$fluid_outputs = hex_get_fluid_size_pairs();
+
 	foreach ( $tokens as $key => $value ) {
-		if ( isset( $schema[ $key ] ) ) {
+		if ( isset( $schema[ $key ] ) || isset( $fluid_outputs[ $key ] ) ) {
 			continue;
 		}
 
@@ -826,6 +984,37 @@ function hex_get_effective_style_values() {
 }
 
 /**
+ * Reset one Theme Options group's fields back to their schema
+ * defaults, leaving every other group's current values untouched.
+ * Pure function — the actual file write happens in
+ * hex_handle_reset_style_group() (inc/admin/handlers.php).
+ *
+ * A value already saved in theme-options.css always wins over a
+ * schema default (see hex_get_style_value()), so a PHP-side default
+ * change (e.g. giving a fluid pair genuinely different mobile/desktop
+ * defaults) never retroactively affects a site that already saved
+ * that field once — this is the only way to actually pick up a
+ * changed default without hand-editing every affected field. See
+ * knoladge/fluid-typography-clamp.md.
+ *
+ * @param string               $group   Schema group key, e.g. 'typography'.
+ * @param array<string,array>  $schema  Effective schema, e.g. hex_get_effective_style_schema().
+ * @param array<string,string> $current Current effective values, e.g. hex_get_effective_style_values().
+ * @return array<string,string>
+ */
+function hex_reset_style_group_tokens( $group, array $schema, array $current ) {
+	$tokens = $current;
+
+	foreach ( $schema as $key => $field ) {
+		if ( $field['group'] === $group ) {
+			$tokens[ $key ] = $field['default'];
+		}
+	}
+
+	return $tokens;
+}
+
+/**
  * Whether a value is safe to print verbatim inside an inline <style>
  * block as a CSS custom property value — permits hex colors, CSS
  * lengths (incl. a leading "-" for letter-spacing), and plain
@@ -857,11 +1046,13 @@ function hex_is_safe_font_value( $value ) {
 }
 
 /**
- * Which computed "--hex-{output}" fluid-typography vars are derived
- * from which mobile/desktop schema key pair — see
- * hex_build_fluid_clamp(). The output keys here are NOT schema
- * entries themselves; they only ever appear as an appended,
- * output-only declaration in hex_build_style_tokens_css().
+ * Which computed "--hex-{output}" text-size vars are derived from
+ * which mobile/desktop schema key pair — hex_build_style_tokens_css()
+ * writes the output key as a flat copy of the desktop key's value (no
+ * clamp()/viewport interpolation — removed per explicit user request;
+ * see knoladge/fluid-typography-clamp.md). The output keys here are
+ * NOT schema entries themselves; they only ever appear as an
+ * appended, output-only declaration in hex_build_style_tokens_css().
  *
  * @return array<string,array{0:string,1:string}> Output key => array( mobile key, desktop key ).
  */
@@ -880,6 +1071,13 @@ function hex_get_fluid_size_pairs() {
  * property between a mobile value (at the mobile breakpoint) and a
  * desktop value (at the desktop breakpoint), with no media queries —
  * the standard CSS-only fluid-type formula. Pure function.
+ *
+ * No longer called by hex_build_style_tokens_css() — clamp()/fluid
+ * interpolation was removed from the generated theme-options.css per
+ * explicit user request (see knoladge/fluid-typography-clamp.md).
+ * Left in place (and still covered by its own tests) as a pure,
+ * self-contained utility in case a future feature wants the formula
+ * again; it is not part of the current font-size pipeline.
  *
  * Collapses to a flat value when mobile === desktop (no need for a
  * clamp() at all), and falls back to the desktop value if the two
@@ -922,9 +1120,11 @@ function hex_build_fluid_clamp( $mobile, $desktop, $mobile_bp, $desktop_bp ) {
  * CSS, everything else re-checked with the same safety predicates
  * hex_get_style_value() callers rely on), silently omitting anything
  * that fails so one bad value can't corrupt the rest of the file.
- * Also appends a derived fluid clamp() declaration for every pair in
- * hex_get_fluid_size_pairs() — see hex_build_fluid_clamp(). Pure
- * function: no I/O.
+ * Also appends a derived text-size declaration for every pair in
+ * hex_get_fluid_size_pairs() — a flat copy of the pair's desktop
+ * value, no clamp()/viewport interpolation (removed per explicit user
+ * request; see knoladge/fluid-typography-clamp.md). Pure function: no
+ * I/O.
  *
  * @param array<string,string> $tokens Key => value, e.g. hex_get_effective_style_values() merged with submitted overrides.
  * @param array<string,array>  $schema Effective schema, e.g. hex_get_effective_style_schema().
@@ -975,23 +1175,14 @@ function hex_build_style_tokens_css( array $tokens, array $schema ) {
 		$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
 	}
 
-	$mobile_bp  = isset( $tokens['fluid_mobile_breakpoint'] ) ? $tokens['fluid_mobile_breakpoint'] : '';
-	$desktop_bp = isset( $tokens['fluid_desktop_breakpoint'] ) ? $tokens['fluid_desktop_breakpoint'] : '';
-
 	foreach ( $fluid_pairs as $output_key => $pair ) {
-		list( $mobile_key, $desktop_key ) = $pair;
+		list( , $desktop_key ) = $pair;
 
-		if ( ! isset( $tokens[ $mobile_key ], $tokens[ $desktop_key ] ) ) {
+		if ( ! isset( $tokens[ $desktop_key ] ) || ! hex_is_safe_style_value( $tokens[ $desktop_key ] ) ) {
 			continue;
 		}
 
-		$clamp = hex_build_fluid_clamp( $tokens[ $mobile_key ], $tokens[ $desktop_key ], $mobile_bp, $desktop_bp );
-
-		if ( null === $clamp ) {
-			continue;
-		}
-
-		$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $output_key ), $clamp );
+		$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $output_key ), $tokens[ $desktop_key ] );
 	}
 
 	return sprintf(

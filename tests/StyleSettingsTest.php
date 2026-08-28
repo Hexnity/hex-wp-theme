@@ -23,6 +23,7 @@ use WP_Mock\Tools\TestCase;
  * @covers ::hex_get_effective_style_groups
  * @covers ::hex_get_style_value
  * @covers ::hex_get_effective_style_values
+ * @covers ::hex_reset_style_group_tokens
  * @covers ::hex_is_safe_style_value
  * @covers ::hex_get_fluid_size_pairs
  * @covers ::hex_build_fluid_clamp
@@ -191,6 +192,38 @@ class StyleSettingsTest extends TestCase {
 		);
 	}
 
+	public function test_merge_style_schema_with_tokens_never_exposes_a_fluid_output_key_as_a_custom_field() {
+		$this->mock_sanitize_hex_color();
+
+		// A schema that no longer has a flat 'h1_size' field (the real
+		// post-1.5.6 shape) but a file that still has one — either a
+		// leftover from before the mobile/desktop split existed, or
+		// hand-added with that exact reserved name.
+		$schema = array(
+			'h1_size_mobile'  => array(
+				'group'   => 'typography',
+				'type'    => 'length',
+				'default' => '1.75rem',
+				'label'   => 'H1 Mobile Size',
+			),
+			'h1_size_desktop' => array(
+				'group'   => 'typography',
+				'type'    => 'length',
+				'default' => '2.5rem',
+				'label'   => 'H1 Desktop Size',
+			),
+		);
+		$tokens = array(
+			'h1_size'         => '3rem',
+			'hero_bg_opacity' => '0.6',
+		);
+
+		$merged = hex_merge_style_schema_with_tokens( $schema, $tokens );
+
+		$this->assertArrayNotHasKey( 'h1_size', $merged, 'A fluid-pair output key must never be exposed as an editable custom field — hex_build_style_tokens_css() always overwrites it, so an edit here would silently vanish on save.' );
+		$this->assertArrayHasKey( 'hero_bg_opacity', $merged, 'An unrelated custom token must still be detected normally.' );
+	}
+
 	public function test_effective_style_schema_falls_back_to_the_static_schema_when_no_child_theme_active() {
 		WP_Mock::userFunction( 'is_child_theme' )->andReturn( false );
 
@@ -206,8 +239,8 @@ class StyleSettingsTest extends TestCase {
 	public function test_get_style_value_falls_back_to_schema_default() {
 		WP_Mock::userFunction( 'is_child_theme' )->andReturn( false );
 
-		$this->assertSame( '2.5rem', hex_get_style_value( 'h1_size_mobile' ) );
-		$this->assertSame( '2.5rem', hex_get_style_value( 'h1_size_desktop' ) );
+		$this->assertSame( '28px', hex_get_style_value( 'h1_size_mobile' ) );
+		$this->assertSame( '40px', hex_get_style_value( 'h1_size_desktop' ) );
 	}
 
 	public function test_get_style_value_returns_empty_string_for_an_unknown_key() {
@@ -222,9 +255,31 @@ class StyleSettingsTest extends TestCase {
 		$values = hex_get_effective_style_values();
 
 		$this->assertSame( array_keys( hex_get_style_schema() ), array_keys( $values ) );
-		$this->assertSame( '2.5rem', $values['h1_size_mobile'] );
-		$this->assertSame( '2.5rem', $values['h1_size_desktop'] );
+		$this->assertSame( '28px', $values['h1_size_mobile'] );
+		$this->assertSame( '40px', $values['h1_size_desktop'] );
 		$this->assertSame( '#2563eb', $values['color_primary'] );
+	}
+
+	public function test_reset_style_group_tokens_resets_only_the_target_group() {
+		$schema = array(
+			'h1_size_mobile' => array(
+				'group'   => 'typography',
+				'default' => '1.75rem',
+			),
+			'color_primary'  => array(
+				'group'   => 'colors',
+				'default' => '#2563eb',
+			),
+		);
+		$current = array(
+			'h1_size_mobile' => '4rem', // A user-saved, non-default value.
+			'color_primary'  => '#ff0000', // Also user-saved -- must survive a typography-only reset.
+		);
+
+		$tokens = hex_reset_style_group_tokens( 'typography', $schema, $current );
+
+		$this->assertSame( '1.75rem', $tokens['h1_size_mobile'], 'A typography field must be reset to its schema default.' );
+		$this->assertSame( '#ff0000', $tokens['color_primary'], "A different group's saved value must be left untouched." );
 	}
 
 	public function test_safe_style_value_accepts_lengths_and_colors() {
@@ -249,6 +304,20 @@ class StyleSettingsTest extends TestCase {
 			$this->assertArrayHasKey( $mobile_key, $schema, "Fluid pair for '{$output_key}' references a non-existent mobile key '{$mobile_key}'." );
 			$this->assertArrayHasKey( $desktop_key, $schema, "Fluid pair for '{$output_key}' references a non-existent desktop key '{$desktop_key}'." );
 			$this->assertArrayNotHasKey( $output_key, $schema, "Fluid output key '{$output_key}' must not itself be a schema field." );
+		}
+	}
+
+	public function test_every_fluid_pair_ships_with_different_mobile_and_desktop_defaults() {
+		$schema = hex_get_style_schema();
+
+		foreach ( hex_get_fluid_size_pairs() as $output_key => $pair ) {
+			list( $mobile_key, $desktop_key ) = $pair;
+
+			$this->assertNotSame(
+				$schema[ $mobile_key ]['default'],
+				$schema[ $desktop_key ]['default'],
+				"'{$output_key}' ships with equal mobile/desktop defaults ('{$schema[ $mobile_key ]['default']}'), so hex_build_fluid_clamp() would collapse it to a flat value out of the box instead of being fluid."
+			);
 		}
 	}
 
@@ -298,44 +367,38 @@ class StyleSettingsTest extends TestCase {
 		$this->assertStringNotContainsString( 'display:none', $css );
 	}
 
-	public function test_build_style_tokens_css_appends_a_derived_fluid_clamp_declaration() {
+	public function test_build_style_tokens_css_appends_a_derived_flat_text_size_declaration() {
 		$tokens = array(
-			'h1_size_mobile'          => '1.75rem',
-			'h1_size_desktop'         => '2.5rem',
-			'fluid_mobile_breakpoint' => '640px',
-			'fluid_desktop_breakpoint' => '1600px',
+			'h1_size_mobile'  => '1.75rem',
+			'h1_size_desktop' => '2.5rem',
 		);
 		$schema = array(
-			'h1_size_mobile'           => array( 'type' => 'length' ),
-			'h1_size_desktop'          => array( 'type' => 'length' ),
-			'fluid_mobile_breakpoint'  => array( 'type' => 'length' ),
-			'fluid_desktop_breakpoint' => array( 'type' => 'length' ),
+			'h1_size_mobile'  => array( 'type' => 'length' ),
+			'h1_size_desktop' => array( 'type' => 'length' ),
 		);
 
 		$css = hex_build_style_tokens_css( $tokens, $schema );
 
 		$this->assertStringContainsString( '--hex-h1-size-mobile: 1.75rem;', $css );
 		$this->assertStringContainsString( '--hex-h1-size-desktop: 2.5rem;', $css );
-		$this->assertStringContainsString(
-			'--hex-h1-size: ' . hex_build_fluid_clamp( '1.75rem', '2.5rem', '640px', '1600px' ) . ';',
-			$css
-		);
+		$this->assertStringContainsString( '--hex-h1-size: 2.5rem;', $css );
+		$this->assertStringNotContainsString( 'clamp(', $css, 'The derived --hex-h1-size must be a flat copy of the desktop value, never a clamp().' );
 	}
 
 	public function test_build_style_tokens_css_never_writes_a_leftover_flat_value_for_a_fluid_output_key() {
 		$tokens = array(
-			'h1_size'                  => '3rem', // Leftover from before the mobile/desktop pair existed.
-			'h1_size_mobile'           => '1.75rem',
-			'h1_size_desktop'          => '2.5rem',
-			'fluid_mobile_breakpoint'  => '640px',
-			'fluid_desktop_breakpoint' => '1600px',
+			'h1_size'             => '3rem', // Leftover from before the mobile/desktop pair existed.
+			'h1_size_mobile'      => '1.75rem',
+			'h1_size_desktop'     => '2.5rem',
+			'fluid_breakpoint_s'  => '640px',
+			'fluid_breakpoint_xl' => '1600px',
 		);
 		$schema = array(
-			'h1_size'                  => array( 'type' => 'custom' ), // Would be auto-detected as 'custom' by hex_merge_style_schema_with_tokens().
-			'h1_size_mobile'           => array( 'type' => 'length' ),
-			'h1_size_desktop'          => array( 'type' => 'length' ),
-			'fluid_mobile_breakpoint'  => array( 'type' => 'length' ),
-			'fluid_desktop_breakpoint' => array( 'type' => 'length' ),
+			'h1_size'             => array( 'type' => 'custom' ), // Would be auto-detected as 'custom' by hex_merge_style_schema_with_tokens().
+			'h1_size_mobile'      => array( 'type' => 'length' ),
+			'h1_size_desktop'     => array( 'type' => 'length' ),
+			'fluid_breakpoint_s'  => array( 'type' => 'length' ),
+			'fluid_breakpoint_xl' => array( 'type' => 'length' ),
 		);
 
 		$css = hex_build_style_tokens_css( $tokens, $schema );

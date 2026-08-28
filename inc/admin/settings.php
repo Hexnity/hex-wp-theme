@@ -394,18 +394,14 @@ function hex_style_field_placeholder_for_type( $type ) {
 }
 
 /**
- * Render every field belonging to one Theme Options schema group, as
- * label+input pairs (used inside the tabbed grid layout in
- * inc/admin/page-theme-options.php).
+ * Render one label+input pair per field (the body of both branches of
+ * hex_render_style_group_fields() below).
  *
- * @param string $group Schema group key, e.g. 'typography'.
+ * @param array<string,array> $fields Schema key => field, already filtered to one group/subgroup.
  * @return void
  */
-function hex_render_style_group_fields( $group ) {
-	foreach ( hex_get_effective_style_schema() as $key => $field ) {
-		if ( $field['group'] !== $group ) {
-			continue;
-		}
+function hex_render_style_fields( array $fields ) {
+	foreach ( $fields as $key => $field ) {
 		?>
 		<div class="hex-style-field">
 			<label for="<?php echo esc_attr( hex_style_field_name( $key ) ); ?>" class="hex-label">
@@ -421,6 +417,63 @@ function hex_render_style_group_fields( $group ) {
 			?>
 		</div>
 		<?php
+	}
+}
+
+/**
+ * Render every field belonging to one Theme Options schema group
+ * (used inside the tabbed layout in inc/admin/page-theme-options.php).
+ * Fields are bucketed by their schema entry's optional 'subgroup'
+ * label (see hex_get_style_schema()'s docblock): a group with two or
+ * more distinct subgroups renders as a collapsible accordion — one
+ * `<details>` per subgroup (only the first open by default) — so
+ * families like H1/H2/.../Body/Lead/... or the four button variants
+ * don't all run together in one long list. A group with zero or one
+ * subgroup (most of them — colors, spacing, forms, cards, global,
+ * tables, icons, auto-detected custom tokens) renders exactly as
+ * before: one flat two-column grid, no accordion chrome.
+ *
+ * @param string $group Schema group key, e.g. 'typography'.
+ * @return void
+ */
+function hex_render_style_group_fields( $group ) {
+	$buckets = array();
+
+	foreach ( hex_get_effective_style_schema() as $key => $field ) {
+		if ( $field['group'] !== $group ) {
+			continue;
+		}
+
+		$subgroup                     = isset( $field['subgroup'] ) ? $field['subgroup'] : '';
+		$buckets[ $subgroup ][ $key ] = $field;
+	}
+
+	if ( count( $buckets ) <= 1 ) {
+		echo '<div class="grid grid-cols-1 gap-x-6 gap-y-5 p-6 sm:grid-cols-2">';
+		foreach ( $buckets as $fields ) {
+			hex_render_style_fields( $fields );
+		}
+		echo '</div>';
+		return;
+	}
+
+	$is_first = true;
+
+	foreach ( $buckets as $subgroup => $fields ) {
+		?>
+		<details class="hex-style-accordion group border-b border-gray-800 last:border-b-0" <?php echo $is_first ? 'open' : ''; ?>>
+			<summary class="flex cursor-pointer select-none items-center justify-between gap-2 px-6 py-3 text-sm font-semibold text-white! marker:hidden [&::-webkit-details-marker]:hidden">
+				<span><?php echo esc_html( $subgroup ); ?></span>
+				<svg class="h-4 w-4 shrink-0 text-gray-500 transition-transform duration-150 group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+					<polyline points="5 7.5 10 12.5 15 7.5" stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+			</summary>
+			<div class="grid grid-cols-1 gap-x-6 gap-y-5 px-6 pb-6 pt-1 sm:grid-cols-2">
+				<?php hex_render_style_fields( $fields ); ?>
+			</div>
+		</details>
+		<?php
+		$is_first = false;
 	}
 }
 

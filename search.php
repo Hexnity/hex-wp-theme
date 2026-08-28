@@ -15,7 +15,7 @@ get_header();
 <main id="primary" class="site-content mx-auto w-full max-w-6xl flex-1 px-6 py-10">
 	<?php if ( have_posts() ) : ?>
 		<header class="page-header animate__animated animate__fadeIn mb-8">
-			<h1 class="page-title text-h1">
+			<h1 class="page-title hex-h1">
 				<?php
 				printf(
 					/* translators: %s: Search query. */

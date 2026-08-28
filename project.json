@@ -6,10 +6,10 @@
     "text_domain": "hex",
     "function_prefix": "hex_",
     "type": "WordPress theme (classic PHP templates, not a block/FSE theme)",
-    "purpose": "Standalone custom WordPress theme with exactly three selectable page templates (Default, Full Width, Canvas), a GitHub-based self-updater, a child-theme installer (fetches + validates + installs from GitHub, does not auto-generate) with its own fully independent GitHub self-updater, a YOOtheme-Pro-scale admin-configurable design-token system (Theme Options: ~146 fields / 12 groups — typography incl. line-height/letter-spacing/weight/margin, spacing, a 15-color palette, buttons with variants, forms, cards, sections, global radius, tables, alerts, badges, icons — applied via runtime CSS custom properties, no rebuild needed, gated on an active child theme, tabbed admin UI), and a Tailwind-CSS-styled theme management admin dashboard carrying the Hexnity brand (logo + color palette). Front end uses Tailwind CSS + Animate.css but a neutral palette — no brand color/logo there, by explicit user instruction.",
-    "version": "1.5.0",
+    "purpose": "Standalone custom WordPress theme with exactly three selectable page templates (Default, Full Width, Canvas), a GitHub-based self-updater, a child-theme installer (fetches + validates + installs from GitHub, does not auto-generate) with its own fully independent GitHub self-updater, a YOOtheme-Pro-scale admin-configurable design-token system (Theme Options: 173 fields / 13 groups — typography incl. line-height/letter-spacing/weight/margin, spacing, a 15-color palette, buttons with variants, forms, cards, sections, global radius, tables, alerts, badges, navigation, icons — applied via runtime CSS custom properties, no rebuild needed, gated on an active child theme, tabbed admin UI), and a Tailwind-CSS-styled theme management admin dashboard carrying the Hexnity brand (logo + color palette). Front end uses Tailwind CSS + Animate.css but a neutral palette — no brand color/logo there, by explicit user instruction.",
+    "version": "1.5.20",
     "local_path": "/Users/nishanshashintha/Local Sites/mindlabz-new/app/public/wp-content/themes/hex-wp-theme-template",
-    "last_updated": "2026-08-27",
+    "last_updated": "2026-08-28",
     "boundary": "All work is strictly confined to this theme directory. See claude.md."
   },
   "docs": {
@@ -75,7 +75,7 @@
     ],
     "assets": [
       "css/src/theme.css (hexnity @theme tokens — admin build only)",
-      "css/src/site-theme.css (~146 design-token @theme entries + base h1-h6/body/link rules + .btn/.card/.form-control/.alert/.badge/.table-styled/.icon components + .prose heading overrides — front-end only, see features/design-system.md)",
+      "css/src/site-theme.css (~150 design-token @theme entries + base h1-h6/body/link rules + .btn/.card/.form-control/.alert/.badge/.table-styled/.icon/.hex-h1-h6/.hex-body/.hex-lead/.hex-large/.hex-small/.hex-meta components + .prose heading overrides — front-end only, see features/design-system.md; the 11 --text-* size tokens' own CSS-level fallback is a clamp() expression, not a flat value, so headings/body text are fluid even with no child theme active; .hex-h1 etc. are a third, fully static clamp()-based utility-class layer with zero Theme Options/child-theme involvement at all — see knoladge/fluid-typography-clamp.md)",
       "css/src/front.css (front-end Tailwind entry: Preflight + typography plugin + site-theme.css; no theme.css import)",
       "css/src/admin.css (admin Tailwind entry: theme+utilities, no Preflight, + theme.css)",
       "css/tailwind.css (compiled front-end output, shipped)",
@@ -96,11 +96,12 @@
       "functions": []
     },
     "inc/setup.php": {
-      "purpose": "Theme supports, nav menu registration, content width, and the page-templates data map.",
+      "purpose": "Theme supports, nav menu registration, content width, the page-templates data map, and a filter that classes nav menu links for the design system.",
       "functions": [
         "hex_setup() — hooked to after_setup_theme; registers theme supports + nav menus.",
         "hex_content_width() — hooked to after_setup_theme (priority 0); sets $GLOBALS['content_width'], filterable via 'hex_content_width'.",
-        "hex_get_page_templates() — returns the file => label map for the 3 page templates; single source of truth, also used by tests."
+        "hex_get_page_templates() — returns the file => label map for the 3 page templates; single source of truth, also used by tests.",
+        "hex_nav_menu_link_attributes() — hooked to nav_menu_link_attributes; adds the 'nav-link' design-system class to every primary/footer menu link (wp_nav_menu() has no built-in link-class arg)."
       ]
     },
     "inc/enqueue.php": {
@@ -160,7 +161,8 @@
         "hex_render_child_github_repo_field() / hex_render_child_github_branch_field() / hex_render_child_activation_key_field().",
         "hex_render_style_field( $args ) -- generic field renderer for all 7 field types (color-swatch+text / weight select / shadow-preset select / font text with list=\"hex-google-fonts-list\" / length+number+custom text).",
         "hex_style_field_placeholder_for_type( $type ) -- the placeholder hint for a plain-text field type.",
-        "hex_render_style_group_fields( $group ) -- renders every hex_get_effective_style_schema() field belonging to one group as label+input pairs, used inside each tab panel.",
+        "hex_render_style_fields( $fields ) -- renders one label+input pair per already-filtered schema key=>field array; shared body used by both branches of hex_render_style_group_fields().",
+        "hex_render_style_group_fields( $group ) -- renders every hex_get_effective_style_schema() field belonging to one group, bucketed by each field's optional 'subgroup' label. A group with 2+ distinct subgroups (Typography's H1-H6/Body/Lead/.../Fonts & Links, Buttons' variants, Alerts'/Badges' states, Sections' Backgrounds/Padding) renders as a <details>/<summary> accordion, one item per subgroup, only the first open by default. A group with 0-1 subgroups (colors, spacing, forms, cards, global, tables, icons, custom) renders exactly as before -- one flat two-column grid.",
         "hex_render_google_fonts_field() -- the 'Google Fonts' repeater (one row per URL) + resolved-family chip list, rendered once at the top of the Typography panel only."
       ]
     },
@@ -191,7 +193,8 @@
         "hex_handle_install_child_theme() -- admin_post_hex_install_child_theme.",
         "hex_handle_check_child_updates() -- admin_post_hex_check_child_updates.",
         "hex_handle_perform_child_update() -- admin_post_hex_perform_child_update.",
-        "hex_handle_save_style_options() -- admin_post_hex_save_style_options. Hard-checks hex_is_child_theme_active() server-side, sanitizes every submitted design token + the Google Fonts field, rewrites theme-options.css via WP_Filesystem, reports rejected fields via transient. See knoladge/child-theme-css-token-architecture.md."
+        "hex_handle_save_style_options() -- admin_post_hex_save_style_options. Hard-checks hex_is_child_theme_active() server-side, sanitizes every submitted design token + the Google Fonts field, rewrites theme-options.css via WP_Filesystem, reports rejected fields via transient. See knoladge/child-theme-css-token-architecture.md.",
+        "hex_handle_reset_style_group() -- admin_post_hex_reset_style_group. A nonce-protected GET link (not a form post -- it lives inside the page's one main <form>), used by the 'Reset to Defaults' link in each Theme Options tab panel header. Resets only the requested group's fields to their hex_get_style_schema() defaults via hex_reset_style_group_tokens() (inc/style-settings.php), leaving every other group's saved values untouched. This is the only way for a site that already saved a field once to pick up a later PHP-side default change (e.g. the fluid-typography mobile/desktop defaults) -- a changed default never retroactively overrides an already-saved value. See knoladge/fluid-typography-clamp.md."
       ]
     },
     "inc/admin/page-dashboard.php": {
@@ -207,7 +210,7 @@
       "purpose": "Child Theme page render: repo/branch/token settings form, status card (Activated / Installed-not-active / none, per hex_is_child_theme_active()), 'Fetch & Install Child Theme' button (hidden while active), Check/Update buttons."
     },
     "inc/admin/page-theme-options.php": {
-      "purpose": "Theme Options page render, inside the shared shell: left-category tab nav (12 groups + an auto-appearing 'Custom Tokens' tab) + right detail panel with card-style panel headers (JS-driven, assets/js/admin.js), all fields wrapped in a <fieldset disabled> unless hex_is_child_theme_active(), an amber notice + link to Child Theme when disabled, a transient-based save-result message (get_transient('hex_theme_options_log')), and a sticky bottom save bar. Form posts to admin-post.php (hex_handle_save_style_options()), not options.php."
+      "purpose": "Theme Options page render, inside the shared shell: left-category tab nav (12 groups + an auto-appearing 'Custom Tokens' tab) + right detail panel with card-style panel headers (JS-driven, assets/js/admin.js), all fields wrapped in a <fieldset disabled> unless hex_is_child_theme_active(), an amber notice + link to Child Theme when disabled, a transient-based save-result message (get_transient('hex_theme_options_log')), and a sticky bottom save bar. Form posts to admin-post.php (hex_handle_save_style_options()), not options.php. Field layout inside each tab panel is fully owned by hex_render_style_group_fields() (inc/admin/settings.php) -- this file no longer wraps its output in a grid div, since that function renders either a flat grid or an accordion depending on the group. Each panel header also carries a per-group 'Reset to Defaults' link (nonce-protected GET to admin-post.php?action=hex_reset_style_group, confirm() guarded, hidden when no child theme active) -- a plain link rather than a nested <form>, since the whole page is already one <form>; see hex_handle_reset_style_group() (inc/admin/handlers.php)."
     },
     "inc/child-theme.php": {
       "purpose": "Fetches, validates (Template: header must match this theme), and installs a child theme from GitHub — not auto-generated — plus its own independent GitHub self-updater. See features/child-theme.md for full detail.",
@@ -223,10 +226,10 @@
       ]
     },
     "inc/style-settings.php": {
-      "purpose": "The admin-configurable design-token schema -- ~150 fields across 12 groups (typography/spacing/colors/buttons/forms/cards/sections/global/tables/alerts/badges/icons) -- plus auto-discovery of any extra '--hex-*' custom properties a child theme hand-adds, and the CSS-file builder + front-end enqueue. Values are stored in a CSS file inside the active child theme (theme-options.css), not the database. Every typography size field (H1-H6 + body/lead/large/small/meta) is a fluid clamp() pair (mobile/desktop values interpolated across two global breakpoints), not a single static size -- see hex_get_fluid_size_pairs()/hex_build_fluid_clamp() and knoladge/fluid-typography-clamp.md. See knoladge/child-theme-css-token-architecture.md and features/design-system.md for full detail. Loaded unconditionally -- the front end needs hex_enqueue_child_theme_tokens() on every request.",
+      "purpose": "The admin-configurable design-token schema -- 173 fields across 13 groups (typography/spacing/colors/buttons/forms/cards/sections/global/tables/alerts/badges/nav/icons) -- plus auto-discovery of any extra '--hex-*' custom properties a child theme hand-adds, and the CSS-file builder + front-end enqueue. Values are stored in a CSS file inside the active child theme (theme-options.css), not the database. Every typography size field (H1-H6 + body/lead/large/small/meta) is still a mobile/desktop pair, but the derived '--hex-{key}-size' is now a FLAT copy of the desktop value, never a clamp() -- fluid interpolation was removed from this generator per explicit user request; a separate, unrelated static CSS layer (.hex-h1...hex-meta in site-theme.css) is fluid instead, via its own single shared clamp() with hardcoded (non-Theme-Options) breakpoints. See hex_get_fluid_size_pairs()/hex_build_fluid_clamp() and knoladge/fluid-typography-clamp.md for the full history. See knoladge/child-theme-css-token-architecture.md and features/design-system.md for full detail. Loaded unconditionally -- the front end needs hex_enqueue_child_theme_tokens() on every request.",
       "functions": [
-        "hex_get_style_schema() -- the static base schema, built with loops for repetitive families (heading levels, button/alert/badge variants) rather than ~150 hand-written literals. Every heading/text-style size is a {key}_size_mobile/{key}_size_desktop pair, not a single {key}_size field.",
-        "hex_get_style_groups() -- the 12 static group labels in display order.",
+        "hex_get_style_schema() -- the static base schema, built with loops for repetitive families (heading levels, button/alert/badge variants) rather than ~150 hand-written literals. Every heading/text-style size is a {key}_size_mobile/{key}_size_desktop pair, not a single {key}_size field -- each pair ships with genuinely different mobile/desktop defaults (desktop matches the pre-1.5.6 static size, mobile a proportionally smaller value) so every field is fluid out of the box; hex_build_fluid_clamp() would otherwise silently collapse an equal-defaults pair to a flat value. See knoladge/fluid-typography-clamp.md.",
+        "hex_get_style_groups() -- the 13 static group labels in display order.",
         "hex_style_humanize_key( $key ) -- snake_case -> Title Case, used to auto-label loop-built and auto-detected fields.",
         "hex_get_shadow_presets() -- fixed keyword -> real box-shadow CSS map (none/sm/md/lg/xl); the CSS itself is NOT admin-editable, only which preset applies.",
         "hex_style_field_name( $key ) / hex_style_css_var_name( $key ) -- naming transforms (hex_style_{key} form field name/id, --hex-{key with hyphens} CSS var).",
@@ -234,13 +237,14 @@
         "hex_parse_style_tokens_css( $css ) -- pure regex parser: extracts every --hex-{key}: {value}; declaration from a CSS string.",
         "hex_get_child_theme_tokens() -- reads + parses the active child theme's file (empty array if no child theme active or file doesn't exist); deliberately not cached, see the knoladge doc for why.",
         "hex_guess_style_type( $value ) -- pure; guesses color/length/number/font/custom for an auto-detected token, never weight/shadow (closed enumerations).",
-        "hex_merge_style_schema_with_tokens( $schema, $tokens ) -- pure; adds a 'custom'-group entry for every file token not already in the schema.",
+        "hex_merge_style_schema_with_tokens( $schema, $tokens ) -- pure; adds a 'custom'-group entry for every file token not already in the schema, EXCEPT a hex_get_fluid_size_pairs() output key (e.g. 'h1_size') -- those are derived-only and always get overwritten by hex_build_style_tokens_css(), so exposing one as an editable custom field would silently discard any edit on the next save. See knoladge/fluid-typography-clamp.md.",
         "hex_get_effective_style_schema() / hex_get_effective_style_groups() / hex_get_effective_style_values() -- the static schema/groups merged with auto-detected tokens; what the admin UI and save handler actually use.",
         "hex_get_style_value( $key ) -- resolves via the effective schema + the child theme's file, falling back to the schema default.",
+        "hex_reset_style_group_tokens( $group, $schema, $current ) -- pure; returns $current with every field belonging to $group replaced by its schema default, every other group's value untouched. Used by hex_handle_reset_style_group() (inc/admin/handlers.php) for the per-tab 'Reset to Defaults' link -- the only way an already-saved site picks up a later default change.",
         "hex_is_safe_style_value( $value ) / hex_is_safe_font_value( $value ) -- output-time injection defenses re-checked when the file is rebuilt.",
         "hex_get_fluid_size_pairs() -- pure; maps each derived '{key}_size' output var (e.g. 'h1_size') to its '{key}_size_mobile'/'{key}_size_desktop' schema-key pair, for every heading level and body-level text style.",
-        "hex_build_fluid_clamp( $mobile, $desktop, $mobile_bp, $desktop_bp ) -- pure; builds the clamp(mobile, calc(interpolation), desktop) expression, collapsing to a flat value when mobile===desktop and falling back to desktop when the two breakpoints are equal (avoids a division by zero).",
-        "hex_build_style_tokens_css( $tokens, $schema ) -- pure; builds the full theme-options.css file contents (shadow-keyword resolution, per-type re-validation, custom-type check), then appends one derived '--hex-{key}-size: clamp(...)' declaration per hex_get_fluid_size_pairs() entry -- the raw mobile/desktop values are also written as their own '--hex-{key}-size-mobile'/'-desktop' vars, and any leftover flat '{key}_size' token from before the pair existed is never written verbatim.",
+        "hex_build_fluid_clamp( $mobile, $desktop, $mobile_bp, $desktop_bp ) -- pure; builds the clamp(mobile, calc(interpolation), desktop) expression, collapsing to a flat value when mobile===desktop and falling back to desktop when the two breakpoints are equal (avoids a division by zero). No longer called by hex_build_style_tokens_css() (see above) -- left defined and unit-tested as a pure, self-contained utility.",
+        "hex_build_style_tokens_css( $tokens, $schema ) -- pure; builds the full theme-options.css file contents (shadow-keyword resolution, per-type re-validation, custom-type check), then appends one derived '--hex-{key}-size' declaration per hex_get_fluid_size_pairs() entry as a FLAT COPY of that pair's desktop value (never a clamp() -- removed per explicit user request; see knoladge/fluid-typography-clamp.md) -- the raw mobile/desktop values are also written as their own '--hex-{key}-size-mobile'/'-desktop' vars, and any leftover flat '{key}_size' token from before the pair existed is never written verbatim.",
         "hex_enqueue_child_theme_tokens() -- hooked wp_enqueue_scripts; enqueues the active child theme's theme-options.css file directly (filemtime()-versioned) when it exists.",
         "hex_sanitize_style_length() / hex_sanitize_style_number() / hex_sanitize_style_color() / hex_sanitize_style_weight() / hex_sanitize_style_shadow() / hex_sanitize_style_font() / hex_sanitize_style_custom() -- one per field type, pure: sanitized value or null on failure.",
         "hex_sanitize_submitted_style_tokens( $submitted, $schema, $current ) -- pure; sanitizes a full submission, falling back to current values and reporting rejected field labels.",
@@ -352,7 +356,7 @@
       "purpose": "18 tests for inc/google-fonts.php — URL sanitizing, family-name parsing, the front-end enqueue, the resource-hints filter, and the rendered <datalist>. See knoladge/google-fonts-picker.md."
     },
     "tests/SetupTest.php": {
-      "purpose": "Covers hex_get_page_templates() and hex_content_width()."
+      "purpose": "Covers hex_get_page_templates(), hex_content_width(), and hex_nav_menu_link_attributes()."
     },
     "tests/TemplateTagsTest.php": {
       "purpose": "Covers hex_should_show_title() and hex_should_show_chrome() for every template."
@@ -373,7 +377,10 @@
       "purpose": "Covers the fetch/validate functions (header parsing, non-200, missing Template:, wp_remote_get() failure, template mismatch), install's early-return validation paths, branch default, active-detection (none/any-active/live-vs-stored), 'no child theme yet' graceful paths, and the child sanitize callback — not the actual Theme_Upgrader/WP_Filesystem install or a real PucFactory build."
     },
     "tests/StyleSettingsTest.php": {
-      "purpose": "Covers the static design-token schema (>=100 fields, every field's group is documented, every field has a real sanitize callback), naming transforms, the token-file parser, the custom-token type-guessing and schema-merge logic, value resolution (the 'no active child theme' fallback path), the CSS-file builder (incl. shadow-keyword resolution, the injection-defense skip, and the custom type), all 7 sanitize callbacks' pure accept/null-on-reject behavior, and the submitted-tokens sanitizer. Also covers fluid typography: hex_get_fluid_size_pairs() referencing only real schema keys, hex_build_fluid_clamp()'s interpolation formula/flat-value collapse/equal-breakpoint fallback/unsafe-input rejection, and hex_build_style_tokens_css() emitting exactly one derived '--hex-{key}-size' clamp() declaration per pair (never a leftover flat value). The active-child-theme-with-a-real-file path is deliberately not covered here -- see knoladge/child-theme-css-token-architecture.md's Testing section for why."
+      "purpose": "Covers the static design-token schema (>=100 fields, every field's group is documented, every field has a real sanitize callback), naming transforms, the token-file parser, the custom-token type-guessing and schema-merge logic, value resolution (the 'no active child theme' fallback path), the CSS-file builder (incl. shadow-keyword resolution, the injection-defense skip, and the custom type), all 7 sanitize callbacks' pure accept/null-on-reject behavior, and the submitted-tokens sanitizer. Also covers fluid typography: hex_get_fluid_size_pairs() referencing only real schema keys, every fluid pair shipping with genuinely different (non-collapsing) mobile/desktop defaults, hex_build_fluid_clamp()'s interpolation formula/flat-value collapse/equal-breakpoint fallback/unsafe-input rejection, hex_build_style_tokens_css() emitting exactly one derived '--hex-{key}-size' clamp() declaration per pair (never a leftover flat value), and hex_reset_style_group_tokens() resetting only the target group's fields. The active-child-theme-with-a-real-file path is deliberately not covered here -- see knoladge/child-theme-css-token-architecture.md's Testing section for why."
+    },
+    "tests/AdminSettingsRenderTest.php": {
+      "purpose": "Covers hex_render_style_group_fields()'s accordion-vs-flat rendering (inc/admin/settings.php): a group with no 'subgroup'-tagged fields (e.g. colors) still renders one flat two-column grid with no <details> chrome; a group with multiple subgroups (e.g. alerts' Primary/Success/Warning/Danger) renders one <details> per subgroup with only the first left open, in schema order. Output-buffer (ob_start/ob_get_clean) tests, same pattern as tests/GoogleFontsTest.php's datalist test."
     }
   },
   "testing": {

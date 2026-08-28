@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <section class="no-results not-found card animate__animated animate__fadeIn text-center">
 	<header class="page-header">
-		<h1 class="page-title text-h2"><?php esc_html_e( 'Nothing Found', 'hex' ); ?></h1>
+		<h1 class="page-title hex-h2"><?php esc_html_e( 'Nothing Found', 'hex' ); ?></h1>
 	</header>
 
 	<div class="page-content mt-3 text-gray-600">

@@ -14,14 +14,14 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<header class="entry-header mb-3">
 		<?php
 		if ( is_singular() ) :
-			the_title( '<h1 class="entry-title">', '</h1>' );
+			the_title( '<h1 class="entry-title hex-h1">', '</h1>' );
 		else :
-			the_title( '<h2 class="entry-title"><a class="hover:text-site-primary" href="' . esc_url( get_permalink() ) . '" rel="bookmark">', '</a></h2>' );
+			the_title( '<h2 class="entry-title hex-h2"><a class="hover:text-site-primary" href="' . esc_url( get_permalink() ) . '" rel="bookmark">', '</a></h2>' );
 		endif;
 
 		if ( 'post' === get_post_type() ) :
 			?>
-			<div class="entry-meta mt-1 flex flex-wrap gap-2 text-small text-gray-500">
+			<div class="entry-meta mt-1 flex flex-wrap gap-2 hex-small text-gray-500">
 				<?php
 				hex_posted_on();
 				hex_posted_by();
@@ -48,7 +48,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		?>
 	</div>
 
-	<footer class="entry-footer mt-4 flex flex-wrap gap-3 border-t border-gray-100 pt-3 text-small text-gray-500">
+	<footer class="entry-footer mt-4 flex flex-wrap gap-3 border-t border-gray-100 pt-3 hex-small text-gray-500">
 		<?php hex_entry_footer(); ?>
 	</footer>
 </article>

@@ -73,6 +73,23 @@ schema plus whatever's been auto-detected. The "Custom Tokens" tab
 only appears when at least one such field exists, so a plain-parent
 install with no child-theme extensions never shows an empty tab.
 
+**One key never gets auto-detected, on purpose**: any key that's a
+`hex_get_fluid_size_pairs()` *output* (`h1_size`, `h2_size`, ...,
+`meta_size` — see `knoladge/fluid-typography-clamp.md`) is skipped
+even if the file has it. Those keys are derived-only —
+`hex_build_style_tokens_css()` always recomputes them from their
+`{key}_size_mobile`/`_desktop` pair and never writes them verbatim —
+so surfacing one as an editable "Custom Tokens" field would be a
+trap: it would look editable, accept a save, and then silently be
+discarded on the very next rebuild. This actually happened: a
+`theme-options.css` saved before the 1.5.6 mobile/desktop split
+still had a flat `--hex-h1-size: ...;` in it, which the 1.5.6 code
+didn't recognize as belonging to the reserved key set, so it got
+exposed as a "Custom Tokens" field — the user edited it, saved, and
+watched the value disappear every time. Fixed in
+`hex_merge_style_schema_with_tokens()` by excluding any key present
+in `hex_get_fluid_size_pairs()`'s output set before merging.
+
 **Type guessing (`hex_guess_style_type()`)** tries, in order, the
 sanitizers that are safe to guess:
 

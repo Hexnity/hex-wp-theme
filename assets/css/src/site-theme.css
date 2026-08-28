@@ -13,6 +13,16 @@
  * knoladge/child-theme-css-token-architecture.md for the full
  * architecture.
  *
+ * The 11 text-size tokens (`--text-h1`…`--text-h6`, `--text-body`,
+ * `--text-lead`, `--text-large`, `--text-small`, `--text-meta`) each
+ * have a flat px `{default}` — same desktop value
+ * `hex_get_style_schema()` ships — used when no child theme is
+ * active, nothing's been saved yet, or a value was rejected as
+ * unsafe. `--hex-{key}-size` (once a child theme has saved one via
+ * Theme Options) still wins outright over this fallback. This layer
+ * previously used a fluid `clamp()` default; removed per explicit
+ * user request. See `knoladge/fluid-typography-clamp.md`.
+ *
  * Every @theme name here is deliberately distinct from Tailwind's own
  * default token names — EXCEPT the "Global" radius scale
  * (--radius-sm/md/lg), which deliberately DOES override Tailwind's
@@ -26,25 +36,34 @@
  */
 
 @theme {
-	/* Typography: heading levels (size/line-height/letter-spacing/weight). */
-	--text-h1: var(--hex-h1-size, 2.5rem);
-	--text-h2: var(--hex-h2-size, 2rem);
-	--text-h3: var(--hex-h3-size, 1.75rem);
-	--text-h4: var(--hex-h4-size, 1.5rem);
-	--text-h5: var(--hex-h5-size, 1.25rem);
-	--text-h6: var(--hex-h6-size, 1rem);
+	/*
+	 * Typography: heading levels (size/line-height/letter-spacing/weight).
+	 * --text-h{n}'s fallback is a flat px value (no clamp()/viewport
+	 * interpolation — removed per explicit user request; see
+	 * knoladge/fluid-typography-clamp.md) matching the same desktop
+	 * default inc/style-settings.php's schema ships
+	 * (hex_get_style_schema()). --hex-h{n}-size (once a child theme has
+	 * saved one via Theme Options) still wins outright over this
+	 * fallback.
+	 */
+	--text-h1: var(--hex-h1-size, 40px);
+	--text-h2: var(--hex-h2-size, 32px);
+	--text-h3: var(--hex-h3-size, 28px);
+	--text-h4: var(--hex-h4-size, 24px);
+	--text-h5: var(--hex-h5-size, 20px);
+	--text-h6: var(--hex-h6-size, 16px);
 	--leading-h1: var(--hex-h1-line-height, 1.2);
 	--leading-h2: var(--hex-h2-line-height, 1.25);
 	--leading-h3: var(--hex-h3-line-height, 1.3);
 	--leading-h4: var(--hex-h4-line-height, 1.35);
 	--leading-h5: var(--hex-h5-line-height, 1.4);
 	--leading-h6: var(--hex-h6-line-height, 1.4);
-	--tracking-h1: var(--hex-h1-letter-spacing, -0.02em);
-	--tracking-h2: var(--hex-h2-letter-spacing, -0.01em);
-	--tracking-h3: var(--hex-h3-letter-spacing, -0.01em);
-	--tracking-h4: var(--hex-h4-letter-spacing, 0);
-	--tracking-h5: var(--hex-h5-letter-spacing, 0);
-	--tracking-h6: var(--hex-h6-letter-spacing, 0.02em);
+	--tracking-h1: var(--hex-h1-letter-spacing, -0.8px);
+	--tracking-h2: var(--hex-h2-letter-spacing, -0.32px);
+	--tracking-h3: var(--hex-h3-letter-spacing, -0.28px);
+	--tracking-h4: var(--hex-h4-letter-spacing, 0px);
+	--tracking-h5: var(--hex-h5-letter-spacing, 0px);
+	--tracking-h6: var(--hex-h6-letter-spacing, 0.32px);
 	--font-weight-h1: var(--hex-h1-weight, 700);
 	--font-weight-h2: var(--hex-h2-weight, 700);
 	--font-weight-h3: var(--hex-h3-weight, 600);
@@ -52,31 +71,31 @@
 	--font-weight-h5: var(--hex-h5-weight, 600);
 	--font-weight-h6: var(--hex-h6-weight, 600);
 
-	/* Typography: body-level text styles. */
-	--text-body: var(--hex-body-size, 1rem);
-	--text-lead: var(--hex-lead-size, 1.25rem);
-	--text-large: var(--hex-large-size, 1.125rem);
-	--text-small: var(--hex-small-size, 0.875rem);
-	--text-meta: var(--hex-meta-size, 0.8125rem);
+	/* Typography: body-level text styles — same flat-fallback pattern as the headings above. */
+	--text-body: var(--hex-body-size, 16px);
+	--text-lead: var(--hex-lead-size, 20px);
+	--text-large: var(--hex-large-size, 18px);
+	--text-small: var(--hex-small-size, 14px);
+	--text-meta: var(--hex-meta-size, 13px);
 	--leading-body: var(--hex-body-line-height, 1.6);
 	--leading-lead: var(--hex-lead-line-height, 1.6);
 	--leading-large: var(--hex-large-line-height, 1.6);
 	--leading-small: var(--hex-small-line-height, 1.5);
 	--leading-meta: var(--hex-meta-line-height, 1.4);
-	--tracking-meta: var(--hex-meta-letter-spacing, 0.03em);
+	--tracking-meta: var(--hex-meta-letter-spacing, 0.39px);
 	--font-weight-meta: var(--hex-meta-weight, 600);
 
 	/* Spacing. */
-	--spacing-xs: var(--hex-spacing-xs, 0.5rem);
-	--spacing-sm: var(--hex-spacing-sm, 1rem);
-	--spacing-md: var(--hex-spacing-md, 1.5rem);
-	--spacing-lg: var(--hex-spacing-lg, 2rem);
-	--spacing-xl: var(--hex-spacing-xl, 3rem);
-	--spacing-2xl: var(--hex-spacing-2xl, 4rem);
-	--spacing-section-sm: var(--hex-section-padding-sm, 2rem);
-	--spacing-section-md: var(--hex-section-padding-md, 3rem);
-	--spacing-section-lg: var(--hex-section-padding-lg, 4rem);
-	--spacing-section-xl: var(--hex-section-padding-xl, 6rem);
+	--spacing-xs: var(--hex-spacing-xs, 8px);
+	--spacing-sm: var(--hex-spacing-sm, 16px);
+	--spacing-md: var(--hex-spacing-md, 24px);
+	--spacing-lg: var(--hex-spacing-lg, 32px);
+	--spacing-xl: var(--hex-spacing-xl, 48px);
+	--spacing-2xl: var(--hex-spacing-2xl, 64px);
+	--spacing-section-sm: var(--hex-section-padding-sm, 32px);
+	--spacing-section-md: var(--hex-section-padding-md, 48px);
+	--spacing-section-lg: var(--hex-section-padding-lg, 64px);
+	--spacing-section-xl: var(--hex-section-padding-xl, 96px);
 
 	/* Colors: full palette. */
 	--color-site-primary: var(--hex-color-primary, #2563eb);
@@ -102,19 +121,19 @@
 	--color-site-section-secondary: var(--hex-section-background-secondary, #475569);
 
 	/* Global radius scale — overrides Tailwind's own rounded-sm/md/lg. */
-	--radius-sm: var(--hex-radius-sm, 0.25rem);
-	--radius-md: var(--hex-radius-md, 0.5rem);
-	--radius-lg: var(--hex-radius-lg, 1rem);
+	--radius-sm: var(--hex-radius-sm, 4px);
+	--radius-md: var(--hex-radius-md, 8px);
+	--radius-lg: var(--hex-radius-lg, 16px);
 
 	/* Component-specific radius (distinct names, don't touch the global scale above). */
-	--radius-button: var(--hex-button-radius, 0.375rem);
-	--radius-card: var(--hex-card-radius, 0.5rem);
-	--radius-form: var(--hex-form-radius, 0.375rem);
+	--radius-button: var(--hex-button-radius, 6px);
+	--radius-card: var(--hex-card-radius, 8px);
+	--radius-form: var(--hex-form-radius, 6px);
 
 	/* Icon sizes. */
-	--size-icon-sm: var(--hex-icon-size-sm, 1rem);
-	--size-icon-md: var(--hex-icon-size-md, 1.5rem);
-	--size-icon-lg: var(--hex-icon-size-lg, 2rem);
+	--size-icon-sm: var(--hex-icon-size-sm, 16px);
+	--size-icon-md: var(--hex-icon-size-md, 24px);
+	--size-icon-lg: var(--hex-icon-size-lg, 32px);
 }
 
 /*
@@ -146,7 +165,7 @@
 		line-height: var(--leading-h1);
 		letter-spacing: var(--tracking-h1);
 		font-weight: var(--font-weight-h1);
-		margin-bottom: var(--hex-h1-margin-bottom, 1.5rem);
+		margin-bottom: var(--hex-h1-margin-bottom, 24px);
 	}
 
 	h2 {
@@ -154,7 +173,7 @@
 		line-height: var(--leading-h2);
 		letter-spacing: var(--tracking-h2);
 		font-weight: var(--font-weight-h2);
-		margin-bottom: var(--hex-h2-margin-bottom, 1.25rem);
+		margin-bottom: var(--hex-h2-margin-bottom, 20px);
 	}
 
 	h3 {
@@ -162,7 +181,7 @@
 		line-height: var(--leading-h3);
 		letter-spacing: var(--tracking-h3);
 		font-weight: var(--font-weight-h3);
-		margin-bottom: var(--hex-h3-margin-bottom, 1rem);
+		margin-bottom: var(--hex-h3-margin-bottom, 16px);
 	}
 
 	h4 {
@@ -170,7 +189,7 @@
 		line-height: var(--leading-h4);
 		letter-spacing: var(--tracking-h4);
 		font-weight: var(--font-weight-h4);
-		margin-bottom: var(--hex-h4-margin-bottom, 1rem);
+		margin-bottom: var(--hex-h4-margin-bottom, 16px);
 	}
 
 	h5 {
@@ -178,7 +197,7 @@
 		line-height: var(--leading-h5);
 		letter-spacing: var(--tracking-h5);
 		font-weight: var(--font-weight-h5);
-		margin-bottom: var(--hex-h5-margin-bottom, 0.75rem);
+		margin-bottom: var(--hex-h5-margin-bottom, 12px);
 	}
 
 	h6 {
@@ -186,7 +205,7 @@
 		line-height: var(--leading-h6);
 		letter-spacing: var(--tracking-h6);
 		font-weight: var(--font-weight-h6);
-		margin-bottom: var(--hex-h6-margin-bottom, 0.75rem);
+		margin-bottom: var(--hex-h6-margin-bottom, 12px);
 	}
 
 	/*
@@ -206,6 +225,152 @@
 }
 
 @layer components {
+	/*
+	 * Fluid text-size variables + classes (.hex-h1…hex-h6, .hex-body,
+	 * .hex-lead, .hex-large, .hex-small, .hex-meta) — restored fluid
+	 * interpolation per explicit user request, with two hard rules
+	 * from that request: (1) exactly ONE shared clamp() calculation
+	 * for every class below, never one formula per class — each class
+	 * only sets its own --mobile-font-size/--desktop-font-size, and
+	 * the single selector list further down does the actual clamp()
+	 * once; (2) the breakpoints driving the interpolation
+	 * (--hex-static-breakpoint-s/-m/-l/-xl, :root block below) are
+	 * hardcoded here and NEVER stored in theme-options.css / admin-
+	 * editable — distinct from Theme Options' own
+	 * --hex-fluid-breakpoint-s/-m/-l/-xl (Global tab, feeds the
+	 * unrelated --text-h1 etc. chain above), keeping this layer's
+	 * *range* independent of Theme Options even though its
+	 * *endpoints* are not (see next paragraph). Same overall formula
+	 * shape as hex_build_fluid_clamp() (inc/style-settings.php) and
+	 * the reference implementation the user supplied, ported to this
+	 * project's real-length convention (no bare-number/"* 1px" trick
+	 * — our --hex-{key}-size-mobile/-desktop values are already real
+	 * px lengths per the project's "always px" rule, so multiplying
+	 * by 1px again would produce an invalid unit). See
+	 * knoladge/fluid-typography-clamp.md.
+	 *
+	 * The mobile/desktop endpoints themselves ARE still
+	 * Theme-Options-driven (per this project's separate "always use
+	 * Theme Options values" rule): each class reads
+	 * --hex-{key}-size-mobile/-desktop, falling back to the same flat
+	 * px defaults hex_get_style_schema() ships when nothing's saved
+	 * yet. Never reference --mobile-font-size/--desktop-font-size (or
+	 * the --hex-* vars directly) on any selector other than its own
+	 * class — add the class instead. Apply one of these classes to
+	 * ANY element (not just a real <h1>-<h6>) for this fluid
+	 * treatment. Independent of bare h1-h6 (styled above via the
+	 * --text-h1 etc. chain, which stays flat/non-fluid per the
+	 * earlier instruction) and of .text-h1 etc. (the Tailwind-
+	 * generated utilities for those same --text-* tokens).
+	 */
+	:root {
+		--hex-static-breakpoint-s: 640px;   /* Small   — Phone Landscape / Large Phones */
+		--hex-static-breakpoint-m: 960px;   /* Medium  — Tablet Landscape / Small Laptops */
+		--hex-static-breakpoint-l: 1200px;  /* Large   — Standard Desktops */
+		--hex-static-breakpoint-xl: 1600px; /* X-Large — Large Screens / High-Res Monitors */
+	}
+
+	.hex-h1 {
+		--mobile-font-size: var(--hex-h1-size-mobile, 28px);
+		--desktop-font-size: var(--hex-h1-size-desktop, 40px);
+	}
+
+	.hex-h2 {
+		--mobile-font-size: var(--hex-h2-size-mobile, 24px);
+		--desktop-font-size: var(--hex-h2-size-desktop, 32px);
+	}
+
+	.hex-h3 {
+		--mobile-font-size: var(--hex-h3-size-mobile, 22px);
+		--desktop-font-size: var(--hex-h3-size-desktop, 28px);
+	}
+
+	.hex-h4 {
+		--mobile-font-size: var(--hex-h4-size-mobile, 20px);
+		--desktop-font-size: var(--hex-h4-size-desktop, 24px);
+	}
+
+	.hex-h5 {
+		--mobile-font-size: var(--hex-h5-size-mobile, 18px);
+		--desktop-font-size: var(--hex-h5-size-desktop, 20px);
+	}
+
+	.hex-h6 {
+		--mobile-font-size: var(--hex-h6-size-mobile, 15px);
+		--desktop-font-size: var(--hex-h6-size-desktop, 16px);
+	}
+
+	.hex-body {
+		--mobile-font-size: var(--hex-body-size-mobile, 15px);
+		--desktop-font-size: var(--hex-body-size-desktop, 16px);
+	}
+
+	.hex-lead {
+		--mobile-font-size: var(--hex-lead-size-mobile, 18px);
+		--desktop-font-size: var(--hex-lead-size-desktop, 20px);
+	}
+
+	.hex-large {
+		--mobile-font-size: var(--hex-large-size-mobile, 16px);
+		--desktop-font-size: var(--hex-large-size-desktop, 18px);
+	}
+
+	.hex-small {
+		--mobile-font-size: var(--hex-small-size-mobile, 13px);
+		--desktop-font-size: var(--hex-small-size-desktop, 14px);
+	}
+
+	.hex-meta {
+		--mobile-font-size: var(--hex-meta-size-mobile, 12px);
+		--desktop-font-size: var(--hex-meta-size-desktop, 13px);
+	}
+
+	/*
+	 * @tailwindcss/typography's own .prose rule sets a flat
+	 * `font-size: 1rem` directly on the .prose container itself (in
+	 * Tailwind's utilities layer) — every plain descendant (<p>, <li>,
+	 * etc. with no more specific override) inherits that flat value,
+	 * completely bypassing Theme Options and the fluid system, no
+	 * matter what <body>'s own --text-body says. Give .prose the same
+	 * treatment as .hex-body so real post/page body copy is fluid too,
+	 * not just text explicitly wrapped in a .hex-body element.
+	 */
+	.prose {
+		--mobile-font-size: var(--hex-body-size-mobile, 15px);
+		--desktop-font-size: var(--hex-body-size-desktop, 16px);
+	}
+
+	.hex-h1,
+	.hex-h2,
+	.hex-h3,
+	.hex-h4,
+	.hex-h5,
+	.hex-h6,
+	.hex-body,
+	.hex-lead,
+	.hex-large,
+	.hex-small,
+	.hex-meta,
+	.prose {
+		font-size: clamp(
+			var(--mobile-font-size),
+			calc(var(--mobile-font-size) + (var(--desktop-font-size) - var(--mobile-font-size)) * ((100vw - var(--hex-static-breakpoint-s)) / (var(--hex-static-breakpoint-xl) - var(--hex-static-breakpoint-s)))),
+			var(--desktop-font-size)
+		) !important;
+	}
+
+	/* Balanced line-wrapping reads better on short heading text; not
+	   applied to the body-level classes above, where it's not
+	   recommended on longer running text. */
+	.hex-h1,
+	.hex-h2,
+	.hex-h3,
+	.hex-h4,
+	.hex-h5,
+	.hex-h6 {
+		text-wrap: balance;
+	}
+
 	/*
 	 * So headings *inside* post/page content (typed by whoever edits a
 	 * post, not just bare <h1>-<h6> tags) also get the full H1-H6
@@ -257,10 +422,10 @@
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
-		gap: 0.5rem;
+		gap: 8px;
 		border-radius: var(--radius-button);
-		padding-inline: var(--hex-button-padding-x, 1.25rem);
-		padding-block: var(--hex-button-padding-y, 0.625rem);
+		padding-inline: var(--hex-button-padding-x, 20px);
+		padding-block: var(--hex-button-padding-y, 10px);
 		background-color: var(--hex-button-default-background, #e5e7eb);
 		color: var(--hex-button-default-color, #111827);
 		font-weight: var(--hex-button-font-weight, 600);
@@ -326,16 +491,28 @@
 		color: #fff;
 	}
 
+	.btn-xs {
+		padding-inline: var(--hex-button-padding-x-xs, 8px);
+		padding-block: var(--hex-button-padding-y-xs, 4px);
+		font-size: var(--text-meta);
+	}
+
 	.btn-sm {
-		padding-inline: var(--hex-button-padding-x-sm, 0.75rem);
-		padding-block: var(--hex-button-padding-y-sm, 0.375rem);
+		padding-inline: var(--hex-button-padding-x-sm, 12px);
+		padding-block: var(--hex-button-padding-y-sm, 6px);
 		font-size: var(--text-small);
 	}
 
 	.btn-lg {
-		padding-inline: var(--hex-button-padding-x-lg, 1.75rem);
-		padding-block: var(--hex-button-padding-y-lg, 0.875rem);
+		padding-inline: var(--hex-button-padding-x-lg, 28px);
+		padding-block: var(--hex-button-padding-y-lg, 14px);
 		font-size: var(--text-large);
+	}
+
+	.btn-xl {
+		padding-inline: var(--hex-button-padding-x-xl, 36px);
+		padding-block: var(--hex-button-padding-y-xl, 18px);
+		font-size: var(--text-lead);
 	}
 
 	/* Card component. */
@@ -343,7 +520,7 @@
 		background-color: var(--hex-card-background, #fff);
 		border: 1px solid var(--hex-card-border-color, #e5e7eb);
 		border-radius: var(--radius-card);
-		padding: var(--hex-card-padding, 1.5rem);
+		padding: var(--hex-card-padding, 24px);
 		box-shadow: var(--hex-card-shadow, 0 1px 2px 0 rgb(0 0 0 / 0.05));
 		transition: box-shadow 150ms ease;
 	}
@@ -359,8 +536,20 @@
 		background-color: var(--hex-form-background, #fff);
 		border: 1px solid var(--hex-form-border-color, #d1d5db);
 		border-radius: var(--radius-form);
-		padding-inline: var(--hex-form-padding-x, 0.75rem);
-		padding-block: var(--hex-form-padding-y, 0.5rem);
+		padding-inline: var(--hex-form-padding-x, 12px);
+		padding-block: var(--hex-form-padding-y, 8px);
+	}
+
+	.form-control-sm {
+		padding-inline: var(--hex-form-padding-x-sm, 8px);
+		padding-block: var(--hex-form-padding-y-sm, 4px);
+		font-size: var(--text-small);
+	}
+
+	.form-control-lg {
+		padding-inline: var(--hex-form-padding-x-lg, 16px);
+		padding-block: var(--hex-form-padding-y-lg, 12px);
+		font-size: var(--text-large);
 	}
 
 	.form-control::placeholder {
@@ -375,7 +564,7 @@
 
 	.form-label {
 		display: block;
-		margin-bottom: 0.375rem;
+		margin-bottom: 6px;
 		color: var(--hex-form-label-color, #374151);
 		font-weight: 500;
 	}
@@ -389,7 +578,7 @@
 	.table-styled th,
 	.table-styled td {
 		border-bottom: 1px solid var(--hex-table-border-color, #e5e7eb);
-		padding: 0.75rem 1rem;
+		padding: 12px 16px;
 		text-align: left;
 	}
 
@@ -405,7 +594,7 @@
 	/* Alerts. */
 	.alert {
 		border-radius: var(--radius-md);
-		padding: 1rem 1.25rem;
+		padding: 16px 20px;
 	}
 
 	.alert-primary {
@@ -433,7 +622,7 @@
 		display: inline-flex;
 		align-items: center;
 		border-radius: 9999px;
-		padding: 0.125rem 0.625rem;
+		padding: 2px 10px;
 		font-size: var(--text-small);
 		font-weight: 600;
 	}
@@ -461,6 +650,158 @@
 	.badge-danger {
 		background-color: var(--hex-badge-danger-background, #fee2e2);
 		color: var(--hex-badge-danger-color, #991b1b);
+	}
+
+	/* Navigation — primary menu links (header.php's #primary-menu). */
+	.nav-menu {
+		display: flex;
+		align-items: center;
+		gap: var(--hex-nav-gap, 24px);
+	}
+
+	.nav-link {
+		display: block;
+		padding-block: 4px;
+		color: var(--hex-nav-link-color, #374151);
+		font-size: var(--text-small);
+		font-weight: var(--hex-nav-font-weight, 500);
+		text-decoration: none;
+		transition: color 150ms ease;
+	}
+
+	.nav-link:hover {
+		color: var(--hex-nav-link-hover-color, #2563eb);
+	}
+
+	.current-menu-item > .nav-link,
+	.current-menu-ancestor > .nav-link {
+		color: var(--hex-nav-link-active-color, #2563eb);
+	}
+
+	/*
+	 * Accordion — CSS-only, zero JS: each item is a native <details>,
+	 * whose built-in open/close behavior and keyboard support this
+	 * relies on entirely. Markup:
+	 *   <div class="accordion">
+	 *     <details class="accordion-item">
+	 *       <summary>Question</summary>
+	 *       <div class="accordion-content">Answer</div>
+	 *     </details>
+	 *     ...
+	 *   </div>
+	 */
+	.accordion {
+		display: flex;
+		flex-direction: column;
+		gap: var(--hex-accordion-gap, 8px);
+	}
+
+	.accordion-item {
+		background-color: var(--hex-accordion-background, #fff);
+		border: 1px solid var(--hex-accordion-border-color, #e5e7eb);
+		border-radius: var(--hex-accordion-radius, 8px);
+		overflow: hidden;
+	}
+
+	.accordion-item > summary {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: var(--hex-accordion-padding, 16px);
+		background-color: var(--hex-accordion-header-background, #f9fafb);
+		color: var(--hex-accordion-header-color, #111827);
+		font-weight: 600;
+		cursor: pointer;
+		list-style: none;
+	}
+
+	.accordion-item > summary::-webkit-details-marker {
+		display: none;
+	}
+
+	.accordion-item > summary:hover {
+		background-color: var(--hex-accordion-header-hover-background, #f3f4f6);
+	}
+
+	.accordion-item > summary::after {
+		content: '+';
+		flex-shrink: 0;
+		font-size: 1.25em;
+		line-height: 1;
+	}
+
+	.accordion-item[open] > summary::after {
+		content: '\2212';
+	}
+
+	.accordion-content {
+		padding: var(--hex-accordion-padding, 16px);
+	}
+
+	/*
+	 * Tabs — CSS-only, zero JS: hidden radio inputs + labels drive which
+	 * panel shows via the :checked sibling selectors below (supports up
+	 * to 8 tabs per .tabs container). Inputs/labels/panels must all be
+	 * direct children of .tabs, inputs+labels first, in matching order.
+	 * Labels are inline-block so they wrap like text into a "nav row";
+	 * panels are block-level so each naturally starts a new line below
+	 * it — no flexbox/positioning trick needed for the layout split.
+	 * Markup:
+	 *   <div class="tabs">
+	 *     <input type="radio" name="tabs-1" id="tabs-1-a" class="tabs-input" checked>
+	 *     <label for="tabs-1-a" class="tabs-label">Tab A</label>
+	 *     <input type="radio" name="tabs-1" id="tabs-1-b" class="tabs-input">
+	 *     <label for="tabs-1-b" class="tabs-label">Tab B</label>
+	 *     <div class="tabs-panel">Content A</div>
+	 *     <div class="tabs-panel">Content B</div>
+	 *   </div>
+	 */
+	.tabs-input {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		opacity: 0;
+	}
+
+	.tabs-label {
+		display: inline-block;
+		padding-block: 8px;
+		padding-inline: 4px;
+		margin-inline-end: var(--hex-tabs-gap, 24px);
+		color: var(--hex-tabs-label-color, #6b7280);
+		font-weight: 500;
+		border-bottom: 2px solid transparent;
+		cursor: pointer;
+		transition: color 150ms ease, border-color 150ms ease;
+	}
+
+	.tabs-input:checked + .tabs-label {
+		color: var(--hex-tabs-active-label-color, #2563eb);
+		border-bottom-color: var(--hex-tabs-active-border-color, #2563eb);
+	}
+
+	.tabs-input:focus-visible + .tabs-label {
+		outline: 2px solid var(--hex-tabs-active-border-color, #2563eb);
+		outline-offset: 2px;
+	}
+
+	.tabs-panel {
+		display: none;
+		padding-block: var(--hex-tabs-padding, 16px);
+		border-top: 1px solid var(--hex-tabs-border-color, #e5e7eb);
+	}
+
+	.tabs-input:nth-of-type(1):checked ~ .tabs-panel:nth-of-type(1),
+	.tabs-input:nth-of-type(2):checked ~ .tabs-panel:nth-of-type(2),
+	.tabs-input:nth-of-type(3):checked ~ .tabs-panel:nth-of-type(3),
+	.tabs-input:nth-of-type(4):checked ~ .tabs-panel:nth-of-type(4),
+	.tabs-input:nth-of-type(5):checked ~ .tabs-panel:nth-of-type(5),
+	.tabs-input:nth-of-type(6):checked ~ .tabs-panel:nth-of-type(6),
+	.tabs-input:nth-of-type(7):checked ~ .tabs-panel:nth-of-type(7),
+	.tabs-input:nth-of-type(8):checked ~ .tabs-panel:nth-of-type(8) {
+		display: block;
 	}
 
 	/* Icons. */

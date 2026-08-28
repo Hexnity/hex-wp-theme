@@ -15,7 +15,7 @@ get_header();
 <main id="primary" class="site-content mx-auto w-full max-w-6xl flex-1 px-6 py-10">
 	<section class="error-404 not-found card animate__animated animate__fadeIn text-center">
 		<header class="page-header">
-			<h1 class="page-title text-h1"><?php esc_html_e( 'Page Not Found', 'hex' ); ?></h1>
+			<h1 class="page-title hex-h1"><?php esc_html_e( 'Page Not Found', 'hex' ); ?></h1>
 		</header>
 
 		<div class="page-content mt-3 text-gray-600">

@@ -194,3 +194,64 @@ function hex_handle_save_style_options() {
 	exit;
 }
 add_action( 'admin_post_hex_save_style_options', 'hex_handle_save_style_options' );
+
+/**
+ * Handle "Reset to Defaults" for one Theme Options group — a plain
+ * nonce-protected GET link (inc/admin/page-theme-options.php), not a
+ * form post, since it lives inside the page's single main <form> and
+ * a nested <form> isn't valid HTML. Resets only that group's fields;
+ * every other group's saved values are untouched. This is the only
+ * way to pick up a changed schema default (e.g. a fluid pair's
+ * mobile/desktop defaults) for a site that already saved that field
+ * once — see hex_reset_style_group_tokens() (inc/style-settings.php).
+ *
+ * @return void
+ */
+function hex_handle_reset_style_group() {
+	if ( ! current_user_can( 'edit_theme_options' ) ) {
+		wp_die( esc_html__( 'You are not allowed to do this.', 'hex' ), 403 );
+	}
+
+	check_admin_referer( 'hex_reset_style_group' );
+
+	if ( ! hex_is_child_theme_active() ) {
+		set_transient( 'hex_theme_options_log', __( 'Style settings require an active child theme.', 'hex' ), 60 );
+		wp_safe_redirect( admin_url( 'admin.php?page=hex-theme-theme-options' ) );
+		exit;
+	}
+
+	$group  = isset( $_GET['group'] ) ? sanitize_key( wp_unslash( $_GET['group'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- verified above via check_admin_referer().
+	$groups = hex_get_effective_style_groups();
+
+	if ( ! isset( $groups[ $group ] ) ) {
+		wp_safe_redirect( admin_url( 'admin.php?page=hex-theme-theme-options' ) );
+		exit;
+	}
+
+	$schema = hex_get_effective_style_schema();
+	$tokens = hex_reset_style_group_tokens( $group, $schema, hex_get_effective_style_values() );
+	$css    = hex_build_style_tokens_css( $tokens, $schema );
+
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	global $wp_filesystem;
+
+	if ( ! WP_Filesystem() || ! $wp_filesystem->put_contents( hex_style_tokens_file_path(), $css, FS_CHMOD_FILE ) ) {
+		set_transient( 'hex_theme_options_log', __( 'Could not write theme-options.css — check that the active child theme\'s directory is writable.', 'hex' ), 60 );
+		wp_safe_redirect( admin_url( 'admin.php?page=hex-theme-theme-options' ) );
+		exit;
+	}
+
+	set_transient(
+		'hex_theme_options_log',
+		sprintf(
+			/* translators: %s: Group label, e.g. Typography. */
+			__( '%s reset to defaults.', 'hex' ),
+			$groups[ $group ]
+		),
+		60
+	);
+
+	wp_safe_redirect( admin_url( 'admin.php?page=hex-theme-theme-options' ) );
+	exit;
+}
+add_action( 'admin_post_hex_reset_style_group', 'hex_handle_reset_style_group' );

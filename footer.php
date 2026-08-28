@@ -24,12 +24,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 					'menu_id'        => 'footer-menu',
 					'container'      => false,
 					'fallback_cb'    => false,
-					'menu_class'     => 'mb-4 flex flex-wrap gap-5 text-sm [&_a:hover]:text-gray-900',
+					'menu_class'     => 'nav-menu mb-4 flex-wrap',
 				)
 			);
 			?>
 
-			<div class="site-info border-t border-gray-100 pt-4 text-small">
+			<div class="site-info border-t border-gray-100 pt-4 hex-small">
 				<?php
 				$hex_footer_text = get_theme_mod( 'hex_footer_text', '' );
 				if ( $hex_footer_text ) {

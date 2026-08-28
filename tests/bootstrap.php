@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) . '/' );
 }
 
-define( 'HEX_VERSION', '1.5.6' );
+define( 'HEX_VERSION', '1.5.21' );
 define( 'HEX_THEME_DIR', dirname( __DIR__ ) );
 define( 'HEX_THEME_URI', 'http://example.test/wp-content/themes/hex-wp-theme-template' );
 
