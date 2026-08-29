@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	define( 'ABSPATH', dirname( __DIR__ ) . '/' );
 }
 
-define( 'HEX_VERSION', '1.7.2' );
+define( 'HEX_VERSION', '1.8.0' );
 define( 'HEX_THEME_DIR', dirname( __DIR__ ) );
 define( 'HEX_THEME_URI', 'http://example.test/wp-content/themes/hex-wp-theme-template' );
 
@@ -46,6 +46,29 @@ if ( ! function_exists( 'wp_parse_url' ) ) {
 		return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions.parse_url_parse_url
 	}
 }
+
+if ( ! function_exists( 'wp_json_encode' ) ) {
+	function wp_json_encode( $data, $options = 0, $depth = 512 ) { // phpcs:ignore
+		return json_encode( $data, $options, $depth ); // phpcs:ignore WordPress.WP.AlternativeFunctions.json_encode_json_encode
+	}
+}
+
+if ( ! function_exists( 'wp_unslash' ) ) {
+	function wp_unslash( $value ) { // phpcs:ignore
+		return is_string( $value ) ? stripslashes( $value ) : $value;
+	}
+}
+
+/*
+ * NOTE: sanitize_text_field()/wp_strip_all_tags() are deliberately NOT
+ * given a permanent stub here, unlike the wrappers above — existing
+ * tests (CustomizerTest, UpdaterTest) assert on exactly how many times
+ * WP_Mock::userFunction('sanitize_text_field'/'wp_strip_all_tags') is
+ * called; a permanent real definition here would bypass WP_Mock's own
+ * interception for those two names and silently break that call-count
+ * verification (confirmed — this was tried and reverted). Mock them
+ * per-test instead, as every other test file already does.
+ */
 
 if ( ! function_exists( '__' ) ) {
 	function __( $text, $domain = 'default' ) { // phpcs:ignore
@@ -102,6 +125,7 @@ foreach (
 		'child-theme.php',
 		'style-settings.php',
 		'google-fonts.php',
+		'page-content.php',
 		'admin/settings.php',
 	) as $hex_inc_file
 ) {

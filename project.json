@@ -353,7 +353,7 @@
       "purpose": "PHPUnit config; bootstraps tests/bootstrap.php; suite = tests/*Test.php."
     },
     "tests/bootstrap.php": {
-      "purpose": "WP_Mock bootstrap + plain stub functions (add_action/add_filter/wp_parse_url/__/esc_html__) + a minimal WP_Error class stub + requires every inc/*.php (incl. updater.php, child-theme.php, style-settings.php, google-fonts.php, admin/settings.php) once."
+      "purpose": "WP_Mock bootstrap + plain stub functions (add_action/add_filter/wp_parse_url/__/esc_html__) + a minimal WP_Error class stub + requires every inc/*.php (incl. updater.php, child-theme.php, style-settings.php, google-fonts.php, admin/settings.php) once. Added 2026-08-29: permanent wp_json_encode()/wp_unslash() passthrough stubs (for inc/page-content.php). sanitize_text_field()/wp_strip_all_tags() were deliberately NOT given permanent stubs -- tried once, reverted, since CustomizerTest/UpdaterTest assert exact call counts against those two names via WP_Mock::userFunction(), which a permanent real definition silently bypasses."
     },
     "tests/GoogleFontsTest.php": {
       "purpose": "13 tests for inc/google-fonts.php, entirely about the Font Library (the older free-text/URL-paste picker this file used to cover was removed 2026-08-29, and its tests deleted along with it) -- the resource-hints filter (leaves non-preconnect alone, adds nothing when unselected; the 'adds preconnects when selected' branch is documented as untestable in this suite -- native file I/O), the common-fonts list well-formedness (no duplicate stacks, every stack passes hex_is_safe_font_value()), stack lookup, hex_build_font_library_url() (pure -- one/multiple/deduped-family URLs), and the selection/enqueue functions' empty-state behavior. See knoladge/google-fonts-picker.md."
@@ -387,6 +387,29 @@
     },
     "assets/css/src/site-theme.css": {
       "purpose": "The whole admin-configurable design-token consuming layer: @theme token block, bare h1-h6/a/body defaults, and every .hex-*/.btn/.card/.form-control/.table-styled/.alert/.badge/.nav-menu/.nav-link/.accordion/.tabs/.icon component class. Imported by front.css, compiled into assets/css/tailwind.css. Lived only in the child theme (../hexnity-wp-child) from 2026-08-28 to 2026-08-29; restored here per explicit user correction (\"it should be in main theme and should load via main theme\"). The child theme still keeps its own copy as an optional override layer, enqueued after this theme's. See knoladge/child-theme-css-token-architecture.md. Added 2026-08-29: .hex-font-heading/.hex-font-body/.hex-font-accent/.hex-font-mono classes (renamed same day from unprefixed names after .font-mono was found to collide with Tailwind v4's own built-in .font-mono utility) (@layer components, after .icon) \u2014 each applies font-family: var(--hex-font-{slot}, {fallback}), consuming the new Font Library schema fields. Added 2026-08-29: .hex-font-heading/.hex-font-body/.hex-font-accent/.hex-font-mono classes (@layer components, after .icon; prefixed hex- to avoid colliding with Tailwind v4's own built-in .font-mono utility) -- each applies font-family: var(--hex-font-{slot}, {fallback}). Bare body/h1-h6 in @layer base were repointed the same day from --hex-body-font-family/--hex-heading-font-family (removed fields) to --hex-font-body/--hex-font-heading (Font Library)."
+    },
+    "inc/page-content.php": {
+      "purpose": "The 'Page Content' JSON framework (added 2026-08-29) -- a dedicated custom DB table ({$wpdb->prefix}hex_page_content, one row per page) storing arbitrary JSON content per page, so a page template can read its own text via hex_get_page_content() and an editor can change it from a 'Page Content (JSON)' meta box on that page's own Edit Page screen (raw JSON textarea, no fixed schema -- each template defines its own key convention). No page template reads from this yet (framework-only scope this round). See features/page-content-json.md and knoladge/page-content-json-framework.md.",
+      "functions": [
+        "hex_page_content_table_name() \u2014 the custom table's prefixed name.",
+        "hex_create_page_content_table() \u2014 dbDelta()-based create/upgrade, hooked to after_switch_theme.",
+        "hex_maybe_upgrade_page_content_table() \u2014 admin_init version-gated re-check for an already-active install.",
+        "hex_sanitize_page_content_value( $value ) \u2014 recursive; wp_kses_post() per string leaf.",
+        "hex_parse_submitted_page_content( $raw ) \u2014 pure; validates a raw JSON submission's shape.",
+        "hex_decode_page_content( $raw_json ) \u2014 pure; JSON string to array.",
+        "hex_encode_page_content_for_display( $content ) \u2014 pure; pretty-prints for the admin textarea, '{}' when empty.",
+        "hex_get_page_content( $page_id = null ) \u2014 the read function a template calls.",
+        "hex_get_page_content_raw( $page_id ) \u2014 pretty-printed JSON for the meta box.",
+        "hex_save_page_content( $page_id, $content ) \u2014 sanitize + upsert.",
+        "hex_delete_page_content( $page_id ) \u2014 delete a page's row.",
+        "hex_delete_page_content_on_post_delete( $post_id ) \u2014 hooked to before_delete_post.",
+        "hex_register_page_content_meta_box() / hex_render_page_content_meta_box() \u2014 the Edit Page screen UI.",
+        "hex_save_page_content_meta_box( $post_id ) \u2014 hooked to save_post_page.",
+        "hex_page_content_error_notice() \u2014 admin_notices; shows/clears an invalid-JSON error."
+      ]
+    },
+    "tests/PageContentTest.php": {
+      "purpose": "33 tests for inc/page-content.php \u2014 every pure function fully covered, the DB-touching functions via a \\Mockery::mock('wpdb') swapped into global $wpdb, and the meta-box save/error-notice handlers via $_POST/$_GET manipulation. hex_create_page_content_table()/hex_maybe_upgrade_page_content_table() are NOT covered \u2014 dbDelta() needs a real WP install and database, neither of which exist in this suite. See knoladge/page-content-json-framework.md."
     }
   },
   "testing": {

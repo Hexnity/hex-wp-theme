@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  *
  * Must always match the `Version:` header in style.css.
  */
-define( 'HEX_VERSION', '1.7.2' );
+define( 'HEX_VERSION', '1.8.0' );
 
 /** Absolute path to the theme directory. */
 define( 'HEX_THEME_DIR', get_template_directory() );
@@ -34,6 +34,7 @@ require HEX_THEME_DIR . '/inc/updater.php';
 require HEX_THEME_DIR . '/inc/child-theme.php';
 require HEX_THEME_DIR . '/inc/style-settings.php';
 require HEX_THEME_DIR . '/inc/google-fonts.php';
+require HEX_THEME_DIR . '/inc/page-content.php';
 
 if ( is_admin() ) {
 	require HEX_THEME_DIR . '/inc/admin/settings.php';
