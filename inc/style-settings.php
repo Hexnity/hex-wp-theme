@@ -9,8 +9,11 @@
  * property found in that file is auto-detected as a "Custom Tokens"
  * field (see hex_merge_style_schema_with_tokens()). See
  * knoladge/child-theme-css-token-architecture.md for the full
- * architecture and assets/css/src/site-theme.css for how Tailwind
- * consumes the resulting CSS custom properties.
+ * architecture. The Tailwind CSS that actually consumes the
+ * resulting custom properties (site-theme.css) no longer lives in
+ * this parent theme — it moved to the active child theme's own
+ * assets/css/src/site-theme.css per explicit user request, so a
+ * child-theme developer can modify those classes directly.
  *
  * Loaded unconditionally (not gated behind is_admin()) because the
  * front end needs hex_enqueue_child_theme_tokens() on every request.
@@ -1194,10 +1197,17 @@ function hex_build_style_tokens_css( array $tokens, array $schema ) {
 /**
  * Enqueue the active child theme's design-token CSS file directly, if
  * one has been saved (or hand-created). Nothing is enqueued when no
- * child theme is active or the file doesn't exist yet — the front end
- * still renders correctly in that case, since every var(--hex-key,
- * default) usage in assets/css/src/site-theme.css carries its own
- * independent CSS-level fallback.
+ * child theme is active or the file doesn't exist yet.
+ *
+ * Note: every var(--hex-key, default) usage's CSS-level fallback only
+ * exists at all if some site-theme.css is compiled and enqueued
+ * somewhere — that file (and every design-system class it defines)
+ * now lives in the active child theme, not this parent theme, per
+ * explicit user request (see
+ * knoladge/child-theme-css-token-architecture.md). This parent theme
+ * alone, with no child theme active, therefore renders with NO
+ * design-system component styling at all — an intentional trade-off,
+ * not an oversight.
  *
  * @return void
  */

@@ -20,6 +20,41 @@ Live-verified on a real site across many rounds (see
 `knoladge/fluid-typography-clamp.md` for the full history of the
 typography system specifically).
 
+## ⚠️ Where the CSS classes actually live now — read this first
+
+**The `.hex-*`/`.btn`/`.card`/`.form-control`/`.alert`/`.badge`/
+`.table-styled`/`.nav-menu`/`.nav-link`/`.accordion`/`.tabs`/`.icon`
+class definitions, the bare `h1`–`h6`/`a`/`body` element defaults, and
+the whole `@theme` token block live back in this parent theme**
+(`assets/css/src/site-theme.css`, imported by `assets/css/src/front.css`
+and compiled to this parent's own `assets/css/tailwind.css`, enqueued
+by `inc/enqueue.php` via `get_template_directory_uri()` — which always
+resolves to this parent theme regardless of which child theme, if any,
+is active). **This parent theme alone, with no child theme active,
+renders with full design-system component styling** — it is
+self-sufficient again.
+
+This reverses an earlier, since-corrected move where these classes
+lived only in the active child theme's own build. The user's
+correction: *"before u added tailwind css to child theme. thats wrong.
+it should be in main theme and should load via main theme."* A further
+same-day clarification narrowed this even more: *"child theme only
+should has site-theme css and theme options. not tailwind live
+there."* **No Tailwind build exists in the child theme at all** — the
+active child theme (`../hexnity-wp-child`) keeps only an unbuilt,
+unenqueued reference copy of `site-theme.css` (for a child-theme
+developer to read/adapt, with zero live effect on its own) plus
+`theme-options.css` (the actual runtime token-value data). This parent
+theme is the sole place the design-system CSS is built and loaded.
+See `knoladge/child-theme-css-token-architecture.md` for the full
+story and its current state, and `../hexnity-wp-child/GUIDELINES.md`
+for the child theme's own side of this contract.
+
+The PHP side (`hex_get_style_schema()`, the admin UI, sanitization,
+`theme-options.css` generation — everything in `inc/style-settings.php`
+and `inc/admin/*`) was never affected by either move and still lives
+here.
+
 ## Revision note
 
 This replaced a first version that only had ~27 fields (headings'
@@ -188,13 +223,19 @@ separate, distinctly-named tokens and don't share this override.
 
 ## Where each token actually lives
 
-- **Tailwind side**: `assets/css/src/site-theme.css` — a `@theme`
-  block defining every sizeable/colorable/radius-able token as
+- **Tailwind side**: the active child theme's own
+  `assets/css/src/site-theme.css` (**not** this parent theme's — see
+  the warning near the top of this doc) — a `@theme` block defining
+  every sizeable/colorable/radius-able token as
   `var(--hex-{key}, {default})`; a `@layer base` block applying the
   heading/link/body defaults directly to bare HTML elements; a
-  `@layer components` block for `.btn`, `.card`, `.form-control`,
-  `.table-styled`, `.alert`, `.badge`, `.icon`, and the `.prose`
-  heading overrides.
+  `@layer components` block for `.hex-*`, `.btn`, `.card`,
+  `.form-control`, `.table-styled`, `.alert`, `.badge`, `.nav-menu`/
+  `.nav-link`, `.accordion`, `.tabs`, `.icon`, and the `.prose`
+  heading overrides. Compiled to that child theme's own
+  `assets/css/tailwind.css` via its own `npm run build:css` (its own
+  `package.json` — a full, independent Tailwind v4 build, not shared
+  with this parent theme's).
 - **PHP side**: `inc/style-settings.php` — `hex_get_style_schema()` is
   the static base schema (built with loops for repetitive families —
   heading levels, button/alert/badge variants — rather than ~146
@@ -375,8 +416,12 @@ gated.
 ## Files involved
 
 `inc/style-settings.php` (schema, discovery/merge, sanitize, the
-CSS-file builder, the front-end enqueue), `assets/css/src/site-theme.css`,
-`assets/css/src/front.css` (imports it), `inc/admin/settings.php`
+CSS-file builder, the front-end enqueue) — in this parent theme. The
+actual `site-theme.css` class definitions live in the active child
+theme (`../hexnity-wp-child/assets/css/src/site-theme.css`, compiled
+by that theme's own `package.json`/`front.css`, not this parent
+theme's) — see the warning near the top of this doc.
+`inc/admin/settings.php`
 (`hex_render_style_field()`, `hex_render_style_group_fields()`,
 `hex_render_google_fonts_field()`), `inc/admin/handlers.php`
 (`hex_handle_save_style_options()` — the admin-post save handler),

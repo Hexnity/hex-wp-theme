@@ -825,12 +825,3 @@
 		height: var(--size-icon-lg);
 	}
 }
-
-/* Respect reduced-motion for the handful of Animate.css entrance
-   animations used on templates (see assets/vendor/animate.min.css). */
-@media (prefers-reduced-motion: reduce) {
-	.animate__animated {
-		animation-duration: 1ms !important;
-		animation-iteration-count: 1 !important;
-	}
-}

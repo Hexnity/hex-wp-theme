@@ -44,9 +44,11 @@ add_action( 'after_setup_theme', 'hex_setup' );
  * Add the "nav-link" design-system class to every link in the
  * primary/footer nav menus, so hex_get_style_schema()'s 'nav' group
  * (nav_link_color/nav_link_hover_color/nav_link_active_color/
- * nav_font_weight, applied via .nav-link in site-theme.css) actually
- * reaches the rendered markup — wp_nav_menu() has no built-in way to
- * add a class to its `<a>` tags.
+ * nav_font_weight, applied via .nav-link — now defined in the active
+ * child theme's own site-theme.css, not this parent theme's, per
+ * knoladge/child-theme-css-token-architecture.md) actually reaches
+ * the rendered markup — wp_nav_menu() has no built-in way to add a
+ * class to its `<a>` tags.
  *
  * @param array<string,string> $atts HTML attributes for the menu link.
  * @param WP_Post              $item The current menu item.

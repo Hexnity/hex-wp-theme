@@ -259,3 +259,223 @@ marginal performance gain.
 Theme Options section now points here for storage detail.
 [[tailwind-cascade-layers-vs-wp-admin]] — an unrelated but similarly
 "looks simple, isn't" CSS gotcha in the same admin dashboard.
+
+## The child theme's own compatibility docs
+
+The sibling `../hexnity-wp-child/` directory (the ready-to-push
+starter child theme mentioned in `claude.md`'s "Known project state")
+has its own `GUIDELINES.md` and `claude.md`, written per explicit user
+request (*"add rules and guidline to child theme... explaining
+everything and how the childtheme should modifiy... it should be
+compatible to main theme also"*). `GUIDELINES.md` is the compatibility
+contract a child-theme developer (human or AI) must follow — the
+`theme-options.css` format, the "always px, never rem/em" rule, which
+keys are derived/reserved (never hand-set `--hex-{key}-size`
+independently of `-desktop`), and the independent-updater isolation
+rule. `claude.md` there is deliberately just *instructions* to create
+that child theme's own `project.json`/`action-map.json` — a session
+scoped to this parent theme has no authoritative data about the child
+theme's internals and must never fabricate them, only ever leave a
+pointer. That sibling directory is still not part of this project's
+own doc index (`project.json`) — a separate theme, tracked here only as a
+cross-reference.
+
+## The consuming CSS moved to the child theme entirely (2026-08-28)
+
+Everything above describes the **data** side (`theme-options.css`) —
+that architecture is unchanged. What changed is the **consuming** side:
+the actual CSS class definitions that read `var(--hex-{key}, {default})`
+(`.hex-*`, `.btn`, `.card`, `.form-control`, `.table-styled`, `.alert`,
+`.badge`, `.nav-menu`/`.nav-link`, `.accordion`, `.tabs`, `.icon`, the
+bare `h1`–`h6`/`a`/`body` defaults, and the whole `@theme` token block
+— i.e. this parent theme's former `assets/css/src/site-theme.css` in
+its entirety) moved to the active child theme's own
+`assets/css/src/site-theme.css`, per explicit user request: *"u have
+to move that classes to child theme I think, otherwise how they can
+be chaged? or modified... move classes to child theme. also in child
+theme u have to load the tailwind css too."*
+
+This was confirmed as a genuine architectural fork before touching
+anything — copy-and-keep-a-fallback (parent still renders standalone)
+vs. a true move (parent no longer renders any design-system component
+styling without a child theme active). The user chose the true move
+explicitly. **This parent theme, alone, with no child theme active,
+now has zero component styling** — not a bug, a chosen trade-off.
+
+The child theme (`../hexnity-wp-child/`) became a full, independent
+Tailwind v4 project to hold this: its own `package.json`
+(`tailwindcss`/`@tailwindcss/typography`/`@tailwindcss/cli`, matching
+this parent's versions), its own `assets/css/src/front.css` (imports
+Tailwind's `theme`+`utilities` layers only — deliberately skips a
+second `preflight` pass, since this parent theme's own build already
+provides that and both stylesheets get enqueued on the same page —
+plus the typography plugin and the moved `site-theme.css`), and its
+own compiled `assets/css/tailwind.css`
+(`hexnity-wp-child-tailwind` handle, enqueued dependent on this
+parent's own `hex-tailwind` handle so load order stays correct).
+
+**The `@source` directives in the child's `front.css` point at THIS
+PARENT theme's own PHP template files**, across the sibling directory
+(`../../../../hex-wp-theme-template/*.php` from the child's
+`assets/css/src/` — four levels up then into the sibling) — because
+the actual page markup (`header.php`, `footer.php`, `archive.php`,
+`template-parts/*.php`, etc.) still lives in and is rendered by this
+parent theme via WordPress's normal template hierarchy; a
+content-scanning Tailwind build needs to see that markup to know
+which utility classes are actually used. This relative path is safe,
+not fragile, specifically because a WordPress child theme is only
+ever meaningful with its parent physically present as a sibling in
+`wp-content/themes/` — verified working by confirming `max-w-6xl` (a
+utility class used in this parent's `header.php`) correctly appeared
+in the child's own compiled output.
+
+See `features/design-system.md`'s "Where the CSS classes actually
+live now" section (the canonical current reference), the amendment
+bullet in `claude.md`'s "Known project state" (correcting, not
+replacing, the older paragraph describing the pre-move architecture),
+and `../hexnity-wp-child/GUIDELINES.md` + `../hexnity-wp-child/project.json`
+for the child theme's own side of this.
+
+## The move above was reversed — CSS moved back to the parent theme (2026-08-29)
+
+The 2026-08-28 move (previous section) turned out to be the wrong
+call. Explicit user correction the next day: *"before u added
+tailwind css to child theme. thats wrong. it should be in main theme
+and should load via main theme."*
+
+`assets/css/src/site-theme.css` (the whole `@theme` token block, bare
+`h1`–`h6`/`a`/`body` defaults, and every `.hex-*`/`.btn`/`.card`/
+`.form-control`/`.nav-menu`/`.accordion`/`.tabs`/etc. component class)
+is back in this parent theme, restored from the last commit before
+the 2026-08-28 deletion (`git show <commit>:assets/css/src/site-theme.css`)
+— diffed against the child theme's evolved copy first to confirm the
+only differences were comment wording (references to "the parent
+theme") and one duplicate reduced-motion `@media` block already
+present in `front.css`; the actual class definitions had not diverged.
+`assets/css/src/front.css` again `@import`s it, and `npm run
+build:css` recompiles it into this parent's own
+`assets/css/tailwind.css`.
+
+No enqueue change was needed: `inc/enqueue.php` already loads
+`hex-tailwind` from `HEX_THEME_URI` (`get_template_directory_uri()`,
+which always resolves to this parent theme, never a child), so once
+the file existed here again the design system was "loading via main
+theme" automatically. The clarified scope at the time (user's choice,
+given two options): only the base build moves back — the child theme
+(`../hexnity-wp-child`) would keep its own copy of `site-theme.css`
+and its own Tailwind build in place too, as an optional override
+layer. **This was narrowed further within the same day — see the next
+section.**
+
+**Lesson for next time**: when a user request implies a full move
+("move classes to child theme") rather than a copy-with-fallback, it's
+worth flagging the standalone-parent trade-off explicitly before
+doing it and getting sign-off in writing — this one was reasonable at
+the time (confirmed as a genuine fork before touching anything, see
+above) but still had to be reversed a day later once the consequence
+was felt in practice.
+
+## The child theme's own Tailwind build was removed entirely (2026-08-29, same day)
+
+Minutes after the reversal above, further correction: *"no no it
+should only in main theme. child theme only should has site-theme css
+and theme options. not tailwind live there. tailwind should come from
+main theme."* The "child theme keeps its own optional-override
+Tailwind build" half of the previous section's plan was wrong too.
+
+Deleted entirely from `../hexnity-wp-child/`: `package.json`,
+`package-lock.json`, `node_modules/`, `assets/css/src/front.css` (its
+build entry point), and the compiled `assets/css/tailwind.css`.
+Rewrote `../hexnity-wp-child/functions.php` to drop the
+`hexnity-wp-child-tailwind` enqueue — it now only enqueues its own
+plain `style.css` (`get_stylesheet_uri()`), declared dependent on this
+parent's `hex-tailwind` handle purely for load-order correctness, not
+because it has any styling of its own to layer on top.
+
+`../hexnity-wp-child/assets/css/src/site-theme.css` itself was **kept,
+not deleted** — the user's own words ("child theme only should has
+site-theme css") — but its header comment now says explicitly that
+it's a reference-only copy with zero live effect: nothing builds or
+enqueues it from the child theme anymore. A child-theme developer who
+wants to actually change a design-system class has to edit this
+parent theme's own `assets/css/src/site-theme.css` and run `npm run
+build:css` here — there is no longer a child-side path that does
+anything on its own.
+
+`theme-options.css` (the runtime token-*value* file, not the class
+*definitions*) was untouched by this — it was never part of the
+child's Tailwind build; it's generated and enqueued by this parent's
+own `inc/style-settings.php` (`hex_enqueue_child_theme_tokens()`)
+regardless of which theme folder it physically sits in, and that
+mechanism is exactly what the user meant by "child theme... should has
+... theme options."
+
+Also updated: `../hexnity-wp-child/GUIDELINES.md` §4,
+`../hexnity-wp-child/style.css`'s header comment,
+`../hexnity-wp-child/project.json`, and
+`../hexnity-wp-child/action-map.json` (its own record of this same
+action). Bumped `../hexnity-wp-child`'s own version 1.1.0 → 1.2.0.
+
+**Current, final state**: this parent theme is the only place a
+Tailwind build exists for this project, full stop. The child theme
+holds two non-executable, design-system-related files only:
+`theme-options.css` (live data) and `site-theme.css` (a dead
+reference copy).
+
+## Live-verified full wiring, and a duplicate-enqueue near-miss (2026-08-29)
+
+Asked to confirm both themes are "industry standard and connected" —
+verified live on `mindlabz-new.local` (`hexnity-wp-child` active)
+rather than trusting static analysis alone. Read the actual rendered
+`<link rel="stylesheet">` tags via the browser:
+
+```
+hex-style-css              → hexnity-wp-child/style.css   (parent's own 'hex-style' handle;
+                                                             get_stylesheet_uri() resolves to
+                                                             whichever theme is active)
+hex-animate-css             → hex-wp-theme-template/assets/vendor/animate.min.css
+hex-tailwind-css            → hex-wp-theme-template/assets/css/tailwind.css
+hex-theme-options-tokens-css → hexnity-wp-child/theme-options.css
+hexnity-wp-child-style-css  → hexnity-wp-child/style.css   (again — same URL, second handle)
+```
+
+This confirmed the intended architecture works end-to-end (Tailwind
+only from the parent, token data only from the child, in the right
+cascade order) but also surfaced a real, pre-existing wart: the
+child's `style.css` loads **twice** — once early via the parent's own
+`'hex-style'` handle (`inc/enqueue.php`, `get_stylesheet_uri()`,
+registered with no dependencies so it prints first), and once again
+late via the child's own `hexnity-wp-child-style` handle (needed so a
+one-off override rule in `style.css` can actually beat a Tailwind
+class of equal specificity — see the file's own header comment).
+
+**Attempted fix, reverted after breaking the live site**: added
+`wp_dequeue_style( 'hex-style' ); wp_deregister_style( 'hex-style' );`
+at the top of `hexnity_wp_child_enqueue_assets()` (priority 20, so it
+runs after the parent's priority-10 registration), intending to
+eliminate the duplicate by removing the early copy entirely. Live
+result: **all three of `hex-style`, `hex-animate`, and `hex-tailwind`
+stopped printing** — the front page rendered with zero theme styling
+(only WordPress core's `dashicons`/`admin-bar` CSS remained).
+`hex-animate` and `hex-tailwind` both declare `'hex-style'` as an
+explicit dependency; deregistering a handle that other *enqueued*
+items still depend on breaks WP's dependency resolution for those
+items too in this WordPress version (site reports "7.1"), not just
+for the deregistered handle itself — contrary to the assumption that
+a missing dependency is silently skipped. **Never deregister a
+still-depended-upon handle from a later-priority hook.** Reverted
+immediately (confirmed live via the same `<link>` tag check that all
+5 stylesheets came back); the duplicate load stands as accepted,
+documented behavior — harmless (identical URL, second `<link>` is a
+browser cache hit, no extra network fetch) versus the alternative of
+either losing the override-ordering guarantee or risking the same
+breakage again with a more careful (untested) dependency-graph edit.
+Bumped `../hexnity-wp-child`'s version 1.2.0 → 1.2.1 for this change
+(the revert net change: an explanatory comment only, no behavior
+change from before this investigation started).
+
+If a cleaner fix is wanted later, the safer path is to make the
+**parent's** `inc/enqueue.php` stop declaring `'hex-style'` as a
+dependency of `hex-animate`/`hex-tailwind` (so removing `'hex-style'`
+downstream can't cascade), not to touch the dependency graph from the
+child theme's side.
