@@ -479,3 +479,75 @@ If a cleaner fix is wanted later, the safer path is to make the
 dependency of `hex-animate`/`hex-tailwind` (so removing `'hex-style'`
 downstream can't cascade), not to touch the dependency graph from the
 child theme's side.
+
+## `theme-options.css` is now grouped into commented sections (2026-08-29)
+
+User request: *"add comments to theme options and separate them in
+code"* — the flat, ~190-declaration file with zero comments (every
+`--hex-*` variable just listed one after another, in schema-definition
+order) was part of what made the earlier "I can't see the variables"
+confusion hard to debug by eye — nothing separated e.g. Typography
+from Colors from the Font Library, so scanning for a specific field
+meant reading the whole file top to bottom.
+
+`hex_build_style_tokens_css()` (`inc/style-settings.php`) now buckets
+every declaration by its schema entry's `group` key (falling back to
+`'custom'` when a key has no group — same bucket auto-detected tokens
+already used) instead of writing one flat list, then emits one section
+per `hex_get_style_groups()` entry, in that function's canonical
+order, each preceded by a `/* Group Label. */` comment — skipping any
+group with zero declarations (so a schema with only 3 of the 15
+groups populated still gets a clean 3-section file, not 12 empty
+headers). A derived fluid-output declaration (e.g. `--hex-h1-size`)
+is bucketed under its own `-desktop` sibling's group, so it lands
+next to `--hex-h1-size-mobile`/`--hex-h1-size-desktop`, not off on its
+own. A group value that somehow isn't one of the canonical 15 (or
+`'custom'`) still gets its own humanized section header
+(`hex_style_humanize_key()`) rather than being silently dropped —
+defensive, since nothing in the current schema should ever produce
+this, but losing a declaration outright would be worse than an
+unexpected extra header.
+
+**Real, generated output verified** (a throwaway script loading
+`inc/style-settings.php` with minimal WP-function stubs, calling
+`hex_build_style_tokens_css()` with every schema default plus a
+sample Font Library selection) — confirms all 15 group headers
+appear, in the right order, each immediately followed by that
+group's declarations, e.g.:
+
+```css
+:root {
+	/* Typography. */
+	--hex-h1-size-mobile: 28px;
+	...
+	--hex-font-heading: 'Playfair Display', serif;
+	--hex-font-body: 'Inter', sans-serif;
+	--hex-h1-size: 40px;
+	...
+
+	/* Spacing. */
+	--hex-spacing-xs: 8px;
+	...
+}
+```
+
+**Hand-edits keep whichever section they're placed in** — the file is
+still fully regenerated (not diff-patched) on every save, same as
+always (see "Storage" above), so a hand-added `--hex-*` custom
+property physically stays wherever it was typed until the next save
+re-sorts it into its auto-detected `/* Custom Tokens. */` section
+(`hex_guess_style_type()`/`hex_merge_style_schema_with_tokens()`,
+unaffected by this change — they still merge and guess exactly as
+before, only the CSS-writer's final formatting changed).
+
+Added 4 new tests to `tests/StyleSettingsTest.php` (70 total for that
+file now): a field lands under its own group's comment (with correct
+canonical group ordering verified via `strpos()`), a group with zero
+declarations produces no header at all, a derived fluid size lands in
+its sibling fields' section rather than anywhere else, and an
+unrecognized group still gets a humanized header instead of dropping
+its declaration. Every existing `hex_build_style_tokens_css()` test
+still passed unmodified (they use `assertStringContainsString()` on
+the exact declaration line, which is format-unaffected by grouping).
+`phpcbf` auto-fixed 4 array-alignment warnings from the new variable
+declarations at the top of the function.

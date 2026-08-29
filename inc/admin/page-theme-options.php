@@ -103,17 +103,12 @@ function hex_render_theme_options_page() {
 									</a>
 								<?php endif; ?>
 							</div>
-							<?php if ( 'typography' === $group ) : ?>
-								<?php hex_render_google_fonts_field(); ?>
-							<?php endif; ?>
 							<?php hex_render_style_group_fields( $group ); ?>
 						</div>
 					<?php endforeach; ?>
 				</div>
 			</div>
 		</fieldset>
-
-		<?php hex_render_google_fonts_datalist(); ?>
 
 		<div class="sticky bottom-0 mt-6 flex items-center gap-3 rounded-xl border border-gray-800 bg-gray-900/90 px-6 py-4 backdrop-blur">
 			<?php hex_render_admin_submit_button( __( 'Save Style Settings', 'hex' ), ! $active ); ?>

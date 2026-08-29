@@ -34,6 +34,7 @@ use WP_Mock\Tools\TestCase;
  * @covers ::hex_sanitize_style_weight
  * @covers ::hex_sanitize_style_shadow
  * @covers ::hex_sanitize_style_font
+ * @covers ::hex_sanitize_style_google_font_slot
  * @covers ::hex_sanitize_style_custom
  * @covers ::hex_sanitize_submitted_style_tokens
  * @covers ::hex_style_sanitize_callback_for_type
@@ -492,6 +493,22 @@ class StyleSettingsTest extends TestCase {
 		$this->assertNull( hex_sanitize_style_font( 'url(javascript:alert(1))' ) );
 	}
 
+	public function test_sanitize_style_google_font_slot_accepts_empty_as_no_selection() {
+		$this->assertSame( '', hex_sanitize_style_google_font_slot( '' ) );
+		$this->assertSame( '', hex_sanitize_style_google_font_slot( '   ' ) );
+	}
+
+	public function test_sanitize_style_google_font_slot_accepts_a_known_stack() {
+		$this->assertSame( "'Inter', sans-serif", hex_sanitize_style_google_font_slot( "'Inter', sans-serif" ) );
+	}
+
+	public function test_sanitize_style_google_font_slot_rejects_an_arbitrary_typed_value() {
+		// Unlike hex_sanitize_style_font(), a safe-charset string that isn't
+		// one of hex_get_common_google_fonts()'s exact stacks must still fail
+		// -- this field is a <select>, not free text.
+		$this->assertNull( hex_sanitize_style_google_font_slot( 'Comic Sans MS, cursive' ) );
+	}
+
 	public function test_sanitize_style_custom_accepts_a_safe_value() {
 		$this->assertSame( 'rgba(0,0,0,.5)', hex_sanitize_style_custom( 'rgba(0,0,0,.5)' ) );
 	}
@@ -556,5 +573,134 @@ class StyleSettingsTest extends TestCase {
 
 	public function test_style_sanitize_callback_for_type_includes_custom() {
 		$this->assertSame( 'hex_sanitize_style_custom', hex_style_sanitize_callback_for_type( 'custom' ) );
+	}
+
+	public function test_style_sanitize_callback_for_type_includes_google_font() {
+		$this->assertSame( 'hex_sanitize_style_google_font_slot', hex_style_sanitize_callback_for_type( 'google_font' ) );
+	}
+
+	public function test_schema_includes_the_four_font_library_slots() {
+		$schema = hex_get_style_schema();
+
+		foreach ( array( 'font_heading', 'font_body', 'font_accent', 'font_mono' ) as $key ) {
+			$this->assertArrayHasKey( $key, $schema );
+			$this->assertSame( 'typography', $schema[ $key ]['group'] );
+			$this->assertSame( 'google_font', $schema[ $key ]['type'] );
+			$this->assertSame( '', $schema[ $key ]['default'] );
+		}
+	}
+
+	public function test_build_style_tokens_css_skips_an_unset_font_library_slot() {
+		$schema = array(
+			'font_heading' => array(
+				'type'    => 'google_font',
+				'default' => '',
+			),
+		);
+
+		$css = hex_build_style_tokens_css( array( 'font_heading' => '' ), $schema );
+
+		$this->assertStringNotContainsString( '--hex-font-heading', $css );
+	}
+
+	public function test_build_style_tokens_css_emits_a_selected_font_library_slot() {
+		$schema = array(
+			'font_heading' => array(
+				'type'    => 'google_font',
+				'default' => '',
+			),
+		);
+
+		$css = hex_build_style_tokens_css( array( 'font_heading' => "'Inter', sans-serif" ), $schema );
+
+		$this->assertStringContainsString( "--hex-font-heading: 'Inter', sans-serif;", $css );
+	}
+
+	public function test_build_style_tokens_css_groups_declarations_under_a_comment_per_schema_group() {
+		$tokens = array(
+			// heading_weight is a plain schema key, not one of
+			// hex_get_fluid_size_pairs()'s reserved output keys (h1_size,
+			// h2_size, ...) -- those get skipped from direct submission and
+			// are covered by a separate test below.
+			'heading_weight' => '700',
+			'color_primary'  => '#2563eb',
+		);
+		$schema = array(
+			'heading_weight' => array(
+				'type'  => 'number',
+				'group' => 'typography',
+			),
+			'color_primary'  => array(
+				'type'  => 'color',
+				'group' => 'colors',
+			),
+		);
+
+		$css = hex_build_style_tokens_css( $tokens, $schema );
+
+		$this->assertStringContainsString( "\t/* Typography. */\n\t--hex-heading-weight: 700;", $css );
+		$this->assertStringContainsString( "\t/* Colors. */\n\t--hex-color-primary: #2563eb;", $css );
+		// Typography (declared first in hex_get_style_groups()) must appear
+		// before Colors, regardless of $tokens' own iteration order.
+		$this->assertLessThan( strpos( $css, '/* Colors. */' ), strpos( $css, '/* Typography. */' ) );
+	}
+
+	public function test_build_style_tokens_css_omits_a_group_comment_with_no_declarations() {
+		$tokens = array( 'color_primary' => '#2563eb' );
+		$schema = array(
+			'color_primary' => array(
+				'type'  => 'color',
+				'group' => 'colors',
+			),
+		);
+
+		$css = hex_build_style_tokens_css( $tokens, $schema );
+
+		$this->assertStringNotContainsString( '/* Typography. */', $css );
+		$this->assertStringNotContainsString( '/* Spacing. */', $css );
+	}
+
+	public function test_build_style_tokens_css_puts_a_derived_fluid_size_in_its_own_fields_group() {
+		$tokens = array(
+			'h1_size_mobile'  => '1.75rem',
+			'h1_size_desktop' => '2.5rem',
+			'color_primary'   => '#2563eb',
+		);
+		$schema = array(
+			'h1_size_mobile'  => array(
+				'type'  => 'length',
+				'group' => 'typography',
+			),
+			'h1_size_desktop' => array(
+				'type'  => 'length',
+				'group' => 'typography',
+			),
+			'color_primary'   => array(
+				'type'  => 'color',
+				'group' => 'colors',
+			),
+		);
+
+		$css = hex_build_style_tokens_css( $tokens, $schema );
+
+		// The derived --hex-h1-size sits in the Typography section (with its
+		// mobile/desktop siblings), not e.g. dropped into Custom Tokens.
+		$typography_section = substr( $css, (int) strpos( $css, '/* Typography. */' ), strpos( $css, '/* Colors. */' ) - strpos( $css, '/* Typography. */' ) );
+		$this->assertStringContainsString( '--hex-h1-size: 2.5rem;', $typography_section );
+	}
+
+	public function test_build_style_tokens_css_falls_back_to_custom_tokens_for_an_unrecognized_group() {
+		$tokens = array( 'hero_tagline_color' => '#111827' );
+		$schema = array(
+			'hero_tagline_color' => array(
+				'type'  => 'color',
+				'group' => 'not_a_real_group',
+			),
+		);
+
+		$css = hex_build_style_tokens_css( $tokens, $schema );
+
+		$this->assertStringContainsString( '--hex-hero-tagline-color: #111827;', $css );
+		$this->assertStringContainsString( 'Not A Real Group', $css, 'An unrecognized group should still get a humanized section header, not silently drop its declarations.' );
 	}
 }

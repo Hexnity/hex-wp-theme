@@ -863,6 +863,102 @@
         "../hexnity-wp-child/functions.php (outside this theme's folder)",
         "../hexnity-wp-child/style.css (outside this theme's folder)"
       ]
+    },
+    {
+      "date": "2026-08-29",
+      "user_requirement": "\"now font families should [not be] add by typing. what I need is, modify Google Fonts section, there should be more inputs like font family and all it should also create a variable and that variable should linked to font url. then instead of typing fort name in the input, there should be a dropdown where I can select font. maybe u can add common font library url and hardcode all font names in dropdonw then I can select font. also create 4 font variations where I can use that and there should be classes for that fonts. then I can use that classes to access fonts\" -- clarified via AskUserQuestion into two decisions: (1) add alongside the existing free-text Body/Heading Font Family fields and URL-paste repeater, don't replace them; (2) name the 4 slots semantically -- Heading/Body/Accent/Mono.",
+      "action": "Added a 'Font Library': four dropdown-only Theme Options fields (font_heading/font_body/font_accent/font_mono, new subgroup 'Font Library' under the typography group, own accordion) backed by a curated, hardcoded list of ~40 common Google Fonts across 4 categories (Sans Serif/Serif/Monospace/Display) -- hex_get_common_google_fonts() in inc/google-fonts.php, each entry giving a display name, a CSS font-family 'stack' (what actually gets stored/output), and a Google Fonts 'weights' spec. New schema type 'google_font' in inc/style-settings.php (hex_get_style_schema()) with its own sanitizer hex_sanitize_style_google_font_slot() (empty is a valid 'no selection'; otherwise must exactly match a known stack -- it's a <select>, not free text) registered in hex_style_sanitize_callback_for_type(); hex_build_style_tokens_css() treats 'google_font' like the existing 'font' type (skip unset/unsafe, emit a valid value verbatim) so no new I/O path was needed. New render case in inc/admin/settings.php's hex_render_style_field() switch: a <select> grouped by <optgroup> category plus a '\u2014 Use Default \u2014' empty option. Added hex_get_google_font_by_stack() (reverse lookup), hex_get_font_library_selection() (resolves the 4 saved slots to real entries), hex_build_font_library_url() (pure -- builds one combined, deduped fonts.googleapis.com URL covering every distinct family currently selected, so e.g. Heading and Accent sharing a font costs one request not two) and hex_enqueue_font_library() (the impure wrapper, hooked to wp_enqueue_scripts) in inc/google-fonts.php. Updated hex_google_fonts_resource_hints() to also add preconnect hints when the Font Library (not just the URL-paste repeater) has a selection -- caught and fixed a real bug introduced mid-way: computing the combined 'has fonts' check before the relation_type guard broke the existing short-circuit that let hex_get_google_fonts_urls() go uncalled for non-preconnect relation types, which surfaced as a PHP deprecation notice (explode() given null) in an existing test that didn't mock get_option for that path -- restructured to check relation_type first, matching the original short-circuit order. Added .font-heading/.font-body/.font-accent/.font-mono classes to assets/css/src/site-theme.css's @layer components (each applies font-family: var(--hex-font-{slot}, {fallback})), rebuilt this theme's own Tailwind CSS. Could not visually verify the new admin <select> UI live (no wp-admin credentials available in this session) -- verified instead via an expanded test suite: 4 new tests in StyleSettingsTest.php (sanitizer accept/reject, callback registration, schema entries, CSS-builder skip/emit), 10 new tests in GoogleFontsTest.php (common-fonts-list well-formedness incl. every stack passing hex_is_safe_font_value(), no duplicate stacks, stack lookup, hex_build_font_library_url() tested directly as a pure function for one/multiple/deduped-family URLs, and the empty-selection paths), and 2 new tests in AdminSettingsRenderTest.php (the Font Library renders as its own accordion with 4 <select>s and correct <optgroup>s; an unset slot's '\u2014 Use Default \u2014' option is selected) -- also had to add a missing is_child_theme() mock to a pre-existing test (test_resource_hints_adds_nothing_when_no_fonts_configured) that only 'passed' by accident of full-suite execution order before. Ran vendor/bin/phpunit (156/156, up from 137) and vendor/bin/phpcs --standard=phpcs.xml.dist (0 errors after phpcbf auto-fixed 44 array-alignment warnings in the new hardcoded font list). Bumped version 1.5.23 -> 1.6.0 (style.css, functions.php, tests/bootstrap.php). Updated features/design-system.md (new 'Font Library' table + cross-reference in the existing Google Fonts picker section + Files-involved/Tests sections) and project.json's entries for every touched file. Also fixed, while in inc/style-settings.php, a stale docblock on hex_enqueue_child_theme_tokens() left over from the 2026-08-28/29 site-theme.css relocation-and-reversal (still said site-theme.css 'now lives in the active child theme' -- corrected to describe the current, reversed state) -- found during this session's earlier 'confirm industry standard' audit but not yet fixed.",
+      "files_touched": [
+        "inc/google-fonts.php",
+        "inc/style-settings.php",
+        "inc/admin/settings.php",
+        "assets/css/src/site-theme.css",
+        "assets/css/tailwind.css",
+        "tests/GoogleFontsTest.php",
+        "tests/StyleSettingsTest.php",
+        "tests/AdminSettingsRenderTest.php",
+        "features/design-system.md",
+        "project.json",
+        "action-map.json",
+        "style.css",
+        "functions.php",
+        "tests/bootstrap.php"
+      ]
+    },
+    {
+      "date": "2026-08-29",
+      "user_requirement": "\"i have updated the fonts using that but in css file I cannt see the varibles created?\" -- follow-up after using the new Font Library UI.",
+      "action": "Investigated: the --hex-font-{slot} variables WERE actually being saved correctly to the active child theme's theme-options.css (confirmed by reading the live file -- all 4 present with the user's actual selections). The user was very likely looking in the wrong file (site-theme.css/tailwind.css are static/compiled and only ever contain var(--hex-font-{slot}, {fallback}) references, never a saved value). While verifying the full pipeline live in the browser to explain this, found a real, separate bug: the .font-heading/.font-body/.font-accent/.font-mono classes (added in the prior action) were unprefixed, and .font-mono collided with Tailwind v4's own auto-generated .font-mono utility class (font-family: var(--font-mono)) -- Tailwind's own utilities layer always wins over @layer components regardless of source order, so a saved Mono Font selection had zero visible effect when the .font-mono class was applied. Renamed all four classes to .hex-font-heading/.hex-font-body/.hex-font-accent/.hex-font-mono (site-theme.css) to get them out of Tailwind's utility namespace entirely (all four renamed for consistency, even though only font-mono actually collided) -- updated the matching Theme Options field labels in inc/style-settings.php to reference the new class names. No test changes needed (tests assert on the --hex-font-{slot} CSS variable name, which is unchanged, not the class name). Rebuilt CSS, ran vendor/bin/phpunit (156/156) and vendor/bin/phpcs (0 errors), bumped version 1.6.0 -> 1.6.1. Verified live in the browser after the fix: the enqueued tailwind.css URL now serves ?ver=1.6.1, an element with class hex-font-heading computes font-family 'Inter, sans-serif' (matching the saved value), an element with class hex-font-mono computes 'Open Sans, sans-serif' (matching its saved value), and a plain .font-mono element still correctly gets Tailwind's own default monospace stack -- confirming the two no longer collide. Updated features/design-system.md's Font Library section (renamed classes throughout, added an explanation of the Tailwind-utility-collision reasoning, and a note pointing to theme-options.css as where to actually look for saved values) and CLAUDE.md's Font Library bullet.",
+      "files_touched": [
+        "assets/css/src/site-theme.css",
+        "assets/css/tailwind.css",
+        "inc/style-settings.php",
+        "features/design-system.md",
+        "CLAUDE.md",
+        "action-map.json",
+        "style.css",
+        "functions.php",
+        "tests/bootstrap.php"
+      ]
+    },
+    {
+      "date": "2026-08-29",
+      "user_requirement": "\"keep only that option and remove all other font options.\" -- following the confusion investigated in the prior two actions (variables not visible / H1 works fine), the user decided to consolidate to a single font system: keep the Font Library (the dropdown-based Heading/Body/Accent/Mono slots), remove the older free-text Body/Heading Font Family fields and the URL-paste Google Fonts picker entirely.",
+      "action": "Removed from inc/google-fonts.php: hex_sanitize_google_fonts_urls(), hex_get_google_fonts_urls(), hex_get_google_font_families(), hex_enqueue_google_fonts(), hex_render_google_fonts_datalist() -- kept hex_google_fonts_resource_hints() but simplified it to only check hex_get_font_library_selection() (previously checked both systems). Removed hex_render_google_fonts_field() (the repeater UI) from inc/admin/settings.php, and the list=\"hex-google-fonts-list\" attribute from the still-present generic 'font'-type input (kept only for auto-detected Custom Tokens). Removed the two render calls (hex_render_google_fonts_field()/hex_render_google_fonts_datalist()) from inc/admin/page-theme-options.php. Removed the hex_google_fonts_urls save handling (2 lines) from inc/admin/handlers.php's hex_handle_save_style_options(). Removed body_font_family/heading_font_family from hex_get_style_schema() (inc/style-settings.php). Removed the entire Google Fonts repeater IIFE (~135 lines: row add/remove, live datalist/chip-list mirroring) from assets/js/admin.js. Repointed site-theme.css's bare body/h1-h6 @layer base rules from var(--hex-body-font-family, ...)/var(--hex-heading-font-family, ...) to var(--hex-font-body, ...)/var(--hex-font-heading, ...) so the Font Library's Heading/Body slots now drive site-wide headings/body text automatically -- no site-wide styling capability was lost, only the duplicate/confusing second UI for it. Rewrote tests/GoogleFontsTest.php from 18 tests (all for removed functions) down to 13 (Font Library only, already covered from its own addition); confirmed via direct probe that WP_Mock::userFunction() genuinely cannot intercept a project-defined function (hex_get_style_value) -- it silently has no effect -- confirming the documented constraint from knoladge/child-theme-css-token-architecture.md applies here too, so the resource-hints filter's 'has a selection' branch is left honestly documented as untested rather than given a misleading/wrong assertion. Verified with grep across all .php/.js/.css files that no live code references to the removed functions/option/markup remained (only explanatory comment mentions by name). Rebuilt CSS, ran vendor/bin/phpunit (140/140, down from 156 as expected) and vendor/bin/phpcs (0 errors), ran node --check on admin.js. Bumped version 1.6.1 -> 1.7.0. Updated knoladge/google-fonts-picker.md (superseded banner at top + a full 'Removed' section at the bottom, old content kept as historical record per this project's established pattern), features/design-system.md (Font Library section rewritten to describe it as the sole mechanism, the old 'Google Fonts picker' section rewritten to point at the removal, Files-involved and Tests sections updated), CLAUDE.md (Font Library bullet amended, one stale sentence in the original design-token paragraph struck through and corrected), and project.json's entries for every touched file.",
+      "files_touched": [
+        "inc/google-fonts.php",
+        "inc/style-settings.php",
+        "inc/admin/settings.php",
+        "inc/admin/handlers.php",
+        "inc/admin/page-theme-options.php",
+        "assets/js/admin.js",
+        "assets/css/src/site-theme.css",
+        "assets/css/tailwind.css",
+        "tests/GoogleFontsTest.php",
+        "knoladge/google-fonts-picker.md",
+        "features/design-system.md",
+        "CLAUDE.md",
+        "project.json",
+        "action-map.json",
+        "style.css",
+        "functions.php",
+        "tests/bootstrap.php"
+      ]
+    },
+    {
+      "date": "2026-08-29",
+      "user_requirement": "\"add comments to theme options and separate them in code\" -- following the earlier confusion about not being able to find saved field values in theme-options.css, a flat ~190-line file with zero comments/grouping.",
+      "action": "Rewrote hex_build_style_tokens_css() (inc/style-settings.php) to bucket every declaration by its schema entry's 'group' key (falling back to 'custom' for a keyless entry, same bucket auto-detected tokens already use) instead of writing one flat list, then emit one /* Group Label. */-commented section per hex_get_style_groups() entry, in that function's canonical order (Typography, Spacing, Colors, Buttons, Forms, Cards, Sections, Global, Tables, Alerts, Badges, Navigation, Accordion, Tabs, Icons, then Custom Tokens), skipping any group with zero declarations. A derived fluid-output declaration (e.g. --hex-h1-size) is bucketed under its own '-desktop' sibling's group so it lands next to --hex-h1-size-mobile/-desktop rather than off on its own. A group value not in the canonical 15 (or 'custom') still gets its own humanized section header (hex_style_humanize_key()) rather than silently dropping its declaration -- defensive, since no real schema entry should ever produce this. Verified the real generated output via a throwaway script (minimal WP-function stubs, loading inc/style-settings.php directly, calling hex_build_style_tokens_css() with every schema default plus a sample Font Library selection) -- confirmed all 15 group headers appear correctly ordered with their declarations immediately following, then deleted the script. Added 4 new tests to tests/StyleSettingsTest.php (a field lands under its own group's comment with correct canonical ordering, a group with nothing in it produces no header, a derived fluid size lands with its own field family, an unrecognized group still gets a humanized header) -- one test initially used 'h1_size' as a directly-submitted token key and failed, since that's a reserved hex_get_fluid_size_pairs() OUTPUT key that gets skipped from direct submission regardless of the test's own $schema; fixed by using a non-colliding key ('heading_weight'). Every pre-existing hex_build_style_tokens_css() test still passed unmodified (assertStringContainsString() on exact declaration lines is format-unaffected by grouping). Ran vendor/bin/phpunit (144/144, up from 140) and vendor/bin/phpcs (phpcbf auto-fixed 4 array-alignment warnings from the function's new local variables, then 0 errors/warnings). Bumped version 1.7.0 -> 1.7.1 (PHP-only change, no CSS asset rebuild needed). Updated knoladge/child-theme-css-token-architecture.md (new dated section with the real generated-output example), features/design-system.md ('Where values are actually stored' section + Tests section test count), CLAUDE.md (new bullet + test count/version), and project.json's inc/style-settings.php entry.",
+      "files_touched": [
+        "inc/style-settings.php",
+        "tests/StyleSettingsTest.php",
+        "knoladge/child-theme-css-token-architecture.md",
+        "features/design-system.md",
+        "CLAUDE.md",
+        "project.json",
+        "action-map.json",
+        "style.css",
+        "functions.php",
+        "tests/bootstrap.php"
+      ]
+    },
+    {
+      "date": "2026-08-29",
+      "user_requirement": "\"added this -- --hex-font-heading: 'Instrument Serif', Georgia, 'Times New Roman', serif; --hex-font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif; --hex-font-accent: 'Instrument Serif', Georgia, 'Times New Roman', serif; --hex-font-mono: 'IBM Plex Mono', ui-monospace, monospace; -- but I cannt see them on admin panel\" -- the user hand-edited theme-options.css directly with real values, then reported the admin dropdowns didn't reflect them.",
+      "action": "Diagnosed: the Font Library admin <select> (inc/admin/settings.php) matched the current value against hex_get_common_google_fonts()'s own canonical stacks via EXACT string comparison only. That list's own stacks use short fallback chains (\"'Inter', sans-serif\", \"'Instrument Serif', serif\", \"'IBM Plex Mono', monospace\") -- none matched the user's hand-typed longer chains byte-for-byte, so every one of the four <select>s silently fell back to showing '\u2014 Use Default \u2014' selected even though real values were set and correctly driving the front end (the underlying --hex-font-{slot} variables and .hex-font-{slot} classes were never affected -- purely an admin-dropdown display/matching bug). Added hex_font_stack_primary_name() (extracts the leading font-family name from any stack string, quoted or bare) and hex_get_google_font_by_name() (case-insensitive lookup by that name alone, ignoring the rest of the fallback chain) to inc/google-fonts.php. Extracted the actual selection-matching logic into a new pure function hex_resolve_google_font_field_selection( $value ): an exact stack match wins outright, otherwise a name-only match is used, otherwise the value passes through unchanged (so a genuinely unrecognized font still selects no option, rather than falsely matching something). Simplified inc/admin/settings.php's 'google_font' render case to call this one function instead of inline matching logic. Verified with a throwaway script (loading inc/google-fonts.php directly) that all 4 of the user's exact hand-typed values now resolve to their correct font entry (Instrument Serif/Inter/Instrument Serif/IBM Plex Mono) -- then deleted the script. Documented the one real consequence: since the <option> values are always the canonical short stacks, the next Theme Options save (any field, since the whole form submits every time) will normalize a hand-typed longer chain back down to the canonical one -- expected given the Font Library's design (admin picks from a known-good list), not a regression. Added 8 new tests to tests/GoogleFontsTest.php (hex_font_stack_primary_name() quoted/bare extraction, hex_get_google_font_by_name() match/case-insensitive/unknown, hex_resolve_google_font_field_selection() empty/exact/normalize/unrecognized) -- 21 tests total in that file now, 153 total across the suite. Ran vendor/bin/phpunit (153/153) and vendor/bin/phpcs (0 errors). Bumped version 1.7.1 -> 1.7.2. Updated knoladge/google-fonts-picker.md (new dated section), features/design-system.md (Font Library section + Tests section test count), CLAUDE.md (new bullet + test count/version), and project.json's inc/google-fonts.php and inc/admin/settings.php entries.",
+      "files_touched": [
+        "inc/google-fonts.php",
+        "inc/admin/settings.php",
+        "tests/GoogleFontsTest.php",
+        "knoladge/google-fonts-picker.md",
+        "features/design-system.md",
+        "CLAUDE.md",
+        "project.json",
+        "action-map.json",
+        "style.css",
+        "functions.php",
+        "tests/bootstrap.php"
+      ]
     }
   ]
 }

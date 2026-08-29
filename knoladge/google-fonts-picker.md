@@ -1,5 +1,21 @@
 # How: Admin-configurable Google Fonts picker (no API key)
 
+## ⚠️ Superseded (2026-08-29) — read this first
+
+**Everything below describes a system that has been removed.** The
+free-text "paste a Google Fonts embed link" picker this doc covers
+(`body_font_family`/`heading_font_family` fields, the
+`hex_google_fonts_urls` option, the repeater UI, the `<datalist>`) was
+deleted entirely, replaced by the **Font Library** (four
+dropdown-only fields — Heading/Body/Accent/Mono — backed by a
+hardcoded common-fonts list; see `features/design-system.md`'s "Font
+Library" section and `inc/google-fonts.php`'s current contents).
+Explicit user request: *"keep only that option and remove all other
+font options."* See the "Removed (2026-08-29)" section at the bottom
+of this file for what changed and why. Kept here as historical record
+of how the original picker worked and why it was built that way —
+none of it is live code anymore.
+
 ## What was asked
 
 *"use font selector (searchable) using google fonts. no need to use
@@ -124,3 +140,115 @@ and the rendered `<datalist>` markup. `wp_parse_url()` needed a
 permanent bootstrap passthrough stub (delegating to native
 `parse_url()`) alongside the existing `add_action`/`add_filter` ones —
 added to `tests/bootstrap.php`.
+
+## Removed (2026-08-29)
+
+Sequence that led here: the Font Library (dropdown-based, four
+Heading/Body/Accent/Mono slots) was added alongside this picker,
+without replacing it, per the user's own choice at the time. That
+created two parallel, differently-shaped font systems on the same
+Typography panel — the free-text fields above plus the new dropdowns —
+and led to real confusion tracing through several follow-up messages
+(a report that "the variables aren't in the CSS file," which turned
+out to be a `.font-mono`/Tailwind-utility class collision investigated
+and fixed separately, plus general uncertainty about which field
+actually controlled what). The user's resolution: *"keep only that
+option and remove all other font options"* — meaning keep the Font
+Library, remove everything documented above.
+
+Removed entirely: `hex_sanitize_google_fonts_urls()`,
+`hex_get_google_fonts_urls()`, `hex_get_google_font_families()`,
+`hex_enqueue_google_fonts()`, `hex_render_google_fonts_datalist()`
+(all from `inc/google-fonts.php`), `hex_render_google_fonts_field()`
+(`inc/admin/settings.php`), the `hex_google_fonts_urls` option and its
+save handling (`inc/admin/handlers.php`), the two render calls in
+`inc/admin/page-theme-options.php`, the `body_font_family`/
+`heading_font_family` schema fields (`inc/style-settings.php`), the
+`list="hex-google-fonts-list"` attribute on the still-present generic
+`'font'`-type input (kept only for auto-detected "Custom Tokens" that
+happen to guess as a font list — see `hex_guess_style_type()` — not
+for these two removed fields specifically), and the entire repeater
+IIFE in `assets/js/admin.js` (135 lines).
+
+`hex_google_fonts_resource_hints()` was simplified to check only
+`hex_get_font_library_selection()` (it briefly checked both systems'
+"has fonts" state during the short window both existed — see
+`action-map.json` for that intermediate step).
+
+**`site-theme.css`'s bare `body`/`h1`–`h6` rules were repointed**, not
+just left to lose their font control: `font-family:
+var(--hex-body-font-family, ...)` / `var(--hex-heading-font-family,
+...)` became `var(--hex-font-body, ...)` / `var(--hex-font-heading,
+...)` — the Font Library's Heading/Body slots now drive bare
+headings/body text site-wide, exactly like the removed fields used
+to, so no site-wide styling capability was lost, only the
+duplicate/confusing UI for it. A site with an existing saved
+`--hex-body-font-family`/`--hex-heading-font-family` value in its
+`theme-options.css` keeps that value sitting in the file (auto-picked
+up under "Custom Tokens" now that it's no longer a static schema
+field, per `hex_merge_style_schema_with_tokens()`) but it no longer
+does anything — the Font Library's own `font_body`/`font_heading`
+values are what render.
+
+`tests/GoogleFontsTest.php` was rewritten from 18 tests (all for the
+removed functions) down to 13 (all for the Font Library, which had
+already been covered since it was added a few actions earlier — see
+`action-map.json`). Two Theme Options render calls
+(`hex_render_google_fonts_field()`/`hex_render_google_fonts_datalist()`)
+were removed from `inc/admin/page-theme-options.php`; no test covered
+those specifically so nothing needed updating there.
+
+## A hand-edited value with a longer fallback chain didn't show as selected (2026-08-29)
+
+User hand-added real values straight into `theme-options.css`:
+
+```css
+--hex-font-heading: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+--hex-font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+--hex-font-accent: 'Instrument Serif', Georgia, 'Times New Roman', serif;
+--hex-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+```
+
+— then reported *"I cannt see them on admin panel."* Root cause: the
+Font Library's admin `<select>` (`inc/admin/settings.php`) marked an
+`<option>` selected only via an **exact** string match against
+`hex_get_common_google_fonts()`'s own canonical stack for that font —
+`hex_get_common_google_fonts()`'s entries use short, opinionated
+fallback chains (`"'Inter', sans-serif"`, `"'Instrument Serif',
+serif"`, `"'IBM Plex Mono', monospace"`), none of which match a
+hand-typed longer chain byte-for-byte, so the `<select>` silently fell
+back to showing "— Use Default —" as selected even though a real
+value was set and actively rendering on the front end (the CSS
+variable and the `.hex-font-{slot}` class were never affected by
+this — it's purely a display/matching bug in the admin dropdown).
+
+**Fix**: added `hex_font_stack_primary_name()` (extracts the leading
+font-family name out of any stack string, quoted or bare) and
+`hex_get_google_font_by_name()` (looks up a Font Library entry by that
+name, case-insensitive, in `inc/google-fonts.php`). The render logic
+now goes through a new pure function,
+`hex_resolve_google_font_field_selection( $value )`: an exact stack
+match still wins outright; failing that, a name-only match is used to
+decide which `<option>` to mark selected. All 4 of the user's real
+values now resolve correctly (verified via a throwaway script loading
+`inc/google-fonts.php` directly and calling the new function on each
+exact saved value — all four matched their intended font).
+
+**One consequence worth knowing**: since the `<option value="">`
+attributes are always the canonical short stacks (not whatever was
+hand-typed), the *next* time this Theme Options page is saved — even
+saving an unrelated field, since the form submits every field on
+every save — the `<select>`'s own submitted value overwrites the
+hand-typed longer fallback chain with the canonical shorter one. This
+is expected, not a bug: the Font Library's whole design is "admin
+picks from a known-good list," not "admin owns an arbitrary fallback
+chain" — a hand-edit is honored for display purposes but normalizes
+back to the canonical stack on the next real save.
+
+Added 4 new tests to `tests/GoogleFontsTest.php` for
+`hex_font_stack_primary_name()`/`hex_get_google_font_by_name()`, plus
+4 more for `hex_resolve_google_font_field_selection()` (empty value
+unchanged, exact match unchanged, longer-fallback-chain normalized,
+genuinely-unknown value returned unchanged so no option gets falsely
+marked selected) — 21 tests total in that file now. `vendor/bin/phpunit`
+153/153, `vendor/bin/phpcs` 0 errors. Bumped version 1.7.1 → 1.7.2.

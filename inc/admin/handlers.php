@@ -162,9 +162,6 @@ function hex_handle_save_style_options() {
 
 	$result = hex_sanitize_submitted_style_tokens( $submitted, $schema, $current );
 
-	$google_fonts_raw = isset( $_POST['hex_google_fonts_urls'] ) ? sanitize_textarea_field( wp_unslash( $_POST['hex_google_fonts_urls'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified above via check_admin_referer().
-	update_option( 'hex_google_fonts_urls', hex_sanitize_google_fonts_urls( $google_fonts_raw ) );
-
 	$css = hex_build_style_tokens_css( $result['tokens'], $schema );
 
 	require_once ABSPATH . 'wp-admin/includes/file.php';

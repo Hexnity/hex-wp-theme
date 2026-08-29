@@ -94,6 +94,79 @@ letter-spacing, weight) automatically too — `site-theme.css` overrides
 `.prose h1`…`h6` directly, using `@tailwindcss/typography`'s own
 documented override pattern.
 
+### Font Library — the theme's only font-selection mechanism
+
+| Need | Use this |
+|---|---|
+| A page/post heading, or bare `<body>` text | Nothing needed — driven automatically by the "Heading"/"Body" Font Library slots (`@layer base` in `site-theme.css`), same as every other bare-element default in this system |
+| Apply the admin-picked "Heading" font to something else | `hex-font-heading` |
+| Apply the admin-picked "Body" font to something else | `hex-font-body` |
+| Apply the admin-picked "Accent" font | `hex-font-accent` |
+| Apply the admin-picked "Mono" font | `hex-font-mono` |
+
+**Prefixed `hex-` deliberately** — Tailwind v4 auto-generates its own
+`.font-mono` utility (`font-family: var(--font-mono)`) in
+`@layer utilities`, which always beats `@layer components` in the
+cascade regardless of source order. An unprefixed `.font-mono` here
+would be silently overridden by Tailwind's own — confirmed live (a
+saved Mono Font selection had no visible effect until this was
+caught and fixed). All four are prefixed for consistency even though
+only `.font-mono` actually collided.
+
+**This theme previously also had a free-text `body_font_family`/
+`heading_font_family` pair plus a "paste a Google Fonts embed link"
+picker** — removed entirely per explicit user request ("keep only
+that option and remove all other font options") once having two
+parallel font systems on one panel proved confusing in practice. The
+Font Library is now the sole way to set a font anywhere in this
+theme. Configure it at **Theme Options → Typography → Font Library**:
+each of the four slots is a `<select>` of a curated, hardcoded list of
+common Google Fonts (`hex_get_common_google_fonts()`,
+`inc/google-fonts.php`) grouped by category (Sans Serif/Serif/
+Monospace/Display) — no typing, no embed link, no way to pick a font
+that doesn't actually get loaded. Picking a font does three things at
+once:
+
+1. Sets `--hex-font-{slot}` (via the same Theme Options CSS-variable
+   pipeline every other token uses) to that font's CSS font-family
+   stack, e.g. `'Playfair Display', serif`. **This lands in the
+   active child theme's `theme-options.css`** — that's the file to
+   check if a save doesn't seem to have taken effect, not
+   `site-theme.css`/`tailwind.css` (those are static, compiled files;
+   they only ever contain `var(--hex-font-{slot}, {fallback})`
+   references, never a saved value itself).
+2. `.hex-font-{slot}` (`site-theme.css`) applies `font-family:
+   var(--hex-font-{slot}, {fallback})` — apply the class to any
+   element.
+3. `hex_enqueue_font_library()` loads the actual Google Fonts file —
+   one combined `fonts.googleapis.com/css2` request covering every
+   distinct family currently selected across all four slots (deduped
+   if e.g. Heading and Accent share a font), regardless of whether
+   any `.hex-font-{slot}` class is actually used in markup yet.
+
+A slot left on "— Use Default —" stores `''`, which is skipped
+entirely by `hex_build_style_tokens_css()` (no `--hex-font-{slot}`
+variable emitted) — the class's own CSS-level fallback
+(`-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif` for the
+three text slots, a monospace stack for `.hex-font-mono`) applies
+instead, so the classes are always safe to use even before any slot
+is ever saved.
+
+**Hand-editing `theme-options.css` directly with a longer fallback
+chain than this list's own canonical stack** (e.g. writing
+`'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif`
+instead of the list's own `'Inter', sans-serif`) still works on the
+front end — the raw value is what actually gets used — and the admin
+dropdown now recognizes it too, matched by leading font name
+(`hex_resolve_google_font_field_selection()`, `inc/google-fonts.php`)
+rather than requiring an exact string match. One consequence: the
+form's own `<option>` values are always the canonical short stacks,
+so the *next* Theme Options save (even one for an unrelated field,
+since the whole form submits every time) normalizes a hand-typed
+longer chain back down to the canonical one — expected, not a bug.
+See `knoladge/google-fonts-picker.md`'s "hand-edited value didn't
+show as selected" entry.
+
 ### Two typography paths — flat vs. fluid (read this carefully)
 
 This system went through many iterations (see
@@ -303,34 +376,35 @@ architecture — this is the piece to read before touching
 `inc/style-settings.php` or building a child theme that wants a new
 token.
 
-### Google Fonts picker
+**The generated file is organized into commented sections**, one per
+schema group (`/* Typography. */`, `/* Spacing. */`, `/* Colors. */`,
+...), in the same order as the Theme Options tabs — added so the file
+is actually scannable by eye instead of one flat ~190-line list. A
+group with nothing in it is simply omitted. A derived fluid size
+(e.g. `--hex-h1-size`) sits inside its own field family's section,
+next to `--hex-h1-size-mobile`/`--hex-h1-size-desktop`. Hand-edits
+keep whatever section they're placed in until the next save, which
+re-sorts anything not in the static schema into `/* Custom Tokens. */`.
+See `hex_build_style_tokens_css()`'s own docblock and
+`knoladge/child-theme-css-token-architecture.md`'s "grouped into
+commented sections" entry for the implementation.
 
-Every `font`-type field's text input carries `list="hex-google-fonts-list"`,
-pointing at a `<datalist>` (`hex_render_google_fonts_datalist()`,
-`inc/google-fonts.php`) populated from whatever Google Fonts the admin
-has added — a repeater at the top of the Typography panel
-(`hex_render_google_fonts_field()`, `inc/admin/settings.php`; row
-add/remove and live sync handled by `assets/js/admin.js`), one row per
-embed link/URL, where the admin pastes a Google Fonts embed link (the
-whole snippet from fonts.google.com works in a single row too, not
-just the bare URL). The rows are a client-side convenience only: on
-every change they're joined back into the one hidden
-`hex_google_fonts_urls` field the storage/sanitize layer has always
-used (newline-joined string — see `knoladge/google-fonts-picker.md`),
-and the same JS also mirrors the resolved family names live into the
-shared `<datalist>` and the chip list, so a newly pasted font shows up
-in the font-family dropdowns immediately, with no save/reload needed
-(saving is still what persists it). No Google Fonts API key or request
-is used: family names are parsed directly out of each URL's own
-`family=` query parameter(s) (in PHP for storage/front-end enqueue, and
-mirrored in JS for the live preview), and the same URL(s) are enqueued
-as-is on the front end. See `knoladge/google-fonts-picker.md` and
-`knoladge/admin-bare-button-reset-and-layer-order.md` (the repeater's
-remove button needed the same `!important`-vs-layer-order care as the
-Theme Options tabs) for implementation detail, and
-`inc/google-fonts.php`'s functions (`hex_get_google_fonts_urls()`,
-`hex_get_google_font_families()`, `hex_enqueue_google_fonts()`,
-`hex_google_fonts_resource_hints()`) — all unchanged by the repeater UI.
+### Google Fonts — Font Library only, no free-text picker
+
+This theme previously also had a free-text "paste a Google Fonts
+embed link" picker (a repeater UI, a shared `<datalist>`, a
+`hex_google_fonts_urls` option) feeding the now-removed
+`body_font_family`/`heading_font_family` fields. **Removed entirely**
+(2026-08-29) per explicit user request — see the "Font Library"
+section above for the mechanism that replaced it, and
+`knoladge/google-fonts-picker.md` for the full removal history (kept
+as a historical record of how the old picker worked and why it was
+built that way, even though none of it is live code anymore). The
+only `font`-type Theme Options field left in the schema is the
+auto-detected "Custom Tokens" case (a hand-added `--hex-*` value that
+`hex_guess_style_type()` guesses looks like a font-family list) — it's
+still free text, since a child theme's own custom token can't be
+validated against a fixed list the way the Font Library's fields are.
 
 ## Adding a new token (for future AI work)
 
@@ -417,17 +491,22 @@ gated.
 
 `inc/style-settings.php` (schema, discovery/merge, sanitize, the
 CSS-file builder, the front-end enqueue) — in this parent theme. The
-actual `site-theme.css` class definitions live in the active child
-theme (`../hexnity-wp-child/assets/css/src/site-theme.css`, compiled
-by that theme's own `package.json`/`front.css`, not this parent
-theme's) — see the warning near the top of this doc.
+actual `site-theme.css` class definitions also live in this parent
+theme (`assets/css/src/site-theme.css`, compiled by this theme's own
+`package.json`/`front.css`) — see the "Where the CSS classes actually
+live now" section near the top of this doc for the full history (it
+briefly moved to the active child theme, then moved back).
 `inc/admin/settings.php`
-(`hex_render_style_field()`, `hex_render_style_group_fields()`,
-`hex_render_google_fonts_field()`), `inc/admin/handlers.php`
-(`hex_handle_save_style_options()` — the admin-post save handler),
-`inc/admin/page-theme-options.php` (tabbed layout inside the shared
-dashboard shell — see [[theme-admin-dashboard]]), `inc/google-fonts.php`
-(the Google Fonts picker — see `knoladge/google-fonts-picker.md`),
+(`hex_render_style_field()`, `hex_render_style_group_fields()`),
+`inc/admin/handlers.php` (`hex_handle_save_style_options()` — the
+admin-post save handler), `inc/admin/page-theme-options.php` (tabbed
+layout inside the shared dashboard shell — see
+[[theme-admin-dashboard]]), `inc/google-fonts.php` (the Font Library —
+`hex_get_common_google_fonts()`, `hex_get_font_library_selection()`,
+`hex_build_font_library_url()`, `hex_enqueue_font_library()`, plus the
+`hex_google_fonts_resource_hints()` preconnect filter — see
+`knoladge/google-fonts-picker.md` for this file's full history,
+including the removed free-text picker),
 `assets/js/admin.js` (tab switching + color-swatch sync),
 `inc/admin/menu.php` (5th submenu), `inc/admin/partials.php` (5th
 sidebar nav item), `inc/setup.php` (`hex_nav_menu_link_attributes()` —
@@ -447,26 +526,53 @@ rules that make weight/letter-spacing admin-controlled.
 
 ## Tests
 
-`tests/StyleSettingsTest.php` — schema size (≥100 fields)
+`tests/StyleSettingsTest.php` (70 tests) — schema size (≥100 fields)
 and group coverage, naming transforms, the token-file parser, the
 custom-token type-guessing and schema-merge logic, value resolution
 (the "no active child theme" fallback path — see
 `knoladge/child-theme-css-token-architecture.md` for why the
 active-child-theme-with-a-real-file path isn't unit tested here), the
 CSS-file builder (incl. shadow-keyword resolution, the unsafe-value
-skip, and the `custom` type), all 7 sanitize callbacks' accept/reject
-behavior (pure — return `null` on failure), the submitted-tokens
-sanitizer, and the derived text-size output (`hex_get_fluid_size_pairs()`
-referencing only real schema keys, and the CSS builder emitting the
-derived `--hex-{key}-size` as a flat copy of the desktop value — no
-`clamp()` — for every pair; `hex_build_fluid_clamp()`'s own
-interpolation formula / flat-value collapse / equal-breakpoint
-fallback / unsafe-input rejection is still separately tested even
-though nothing currently calls it). `tests/GoogleFontsTest.php` (18 tests) — URL sanitizing
-(bare URL, whole pasted embed snippet, wrong-host rejection,
-deduping), family-name parsing (single/multiple/dedup/`+`-decoding),
-the front-end enqueue, the resource-hints filter, and the rendered
-`<datalist>`.
+skip, the `custom` type, a Font Library slot being skipped when unset
+and emitted when set, and — added 2026-08-29 — the grouped-comment
+output: a field lands under its own group's `/* Label. */` comment in
+canonical group order, a group with nothing in it produces no header,
+a derived fluid size lands with its own field family rather than
+anywhere else, and an unrecognized group still gets a humanized
+header instead of silently dropping its declaration), all 8 sanitize
+callbacks' accept/reject
+behavior (pure — return `null` on failure, including
+`hex_sanitize_style_google_font_slot()`'s empty-is-valid/
+exact-stack-match rules), the submitted-tokens sanitizer, the four
+Font Library schema entries, and the derived text-size output
+(`hex_get_fluid_size_pairs()` referencing only real schema keys, and
+the CSS builder emitting the derived `--hex-{key}-size` as a flat copy
+of the desktop value — no `clamp()` — for every pair;
+`hex_build_fluid_clamp()`'s own interpolation formula / flat-value
+collapse / equal-breakpoint fallback / unsafe-input rejection is still
+separately tested even though nothing currently calls it).
+`tests/GoogleFontsTest.php` (21 tests, entirely about the Font
+Library — the older free-text/URL-paste picker it used to cover was
+removed, see `knoladge/google-fonts-picker.md`) — the resource-hints
+filter (leaves non-preconnect relation types alone, adds nothing when
+no font is selected; the "adds preconnects when one is selected"
+branch is documented as untestable here — see the file's own comment,
+same native-file-I/O constraint as `hex_get_child_theme_tokens()`),
+the common-fonts list is well-formed with no duplicate stacks and
+every stack passes `hex_is_safe_font_value()`, stack lookup
+found/not-found (both exact-stack and name-only, incl.
+case-insensitivity), `hex_font_stack_primary_name()`'s quoted/bare
+extraction, `hex_resolve_google_font_field_selection()` — a pure
+function, tested directly — normalizing a hand-typed longer fallback
+chain while leaving an exact match or a genuinely unrecognized value
+unchanged, `hex_build_font_library_url()` — also pure — building
+one/multiple/deduped-family URLs, and the selection/enqueue
+functions' empty-state behavior.
+`tests/AdminSettingsRenderTest.php`
+now also covers `hex_render_style_field()` directly: the Font Library
+renders as its own accordion with four `<select>`s grouped by
+`<optgroup>` category, and an unset slot's "— Use Default —" option is
+selected.
 
 ## Known gaps / next steps
 

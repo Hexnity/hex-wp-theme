@@ -146,7 +146,7 @@
 	body {
 		background-color: var(--color-site-body-bg);
 		color: var(--color-site-body-text);
-		font-family: var(--hex-body-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+		font-family: var(--hex-font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
 		font-size: var(--text-body);
 		line-height: var(--leading-body);
 	}
@@ -157,7 +157,7 @@
 	h4,
 	h5,
 	h6 {
-		font-family: var(--hex-heading-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+		font-family: var(--hex-font-heading, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
 	}
 
 	h1 {
@@ -823,5 +823,44 @@
 	.icon-lg {
 		width: var(--size-icon-lg);
 		height: var(--size-icon-lg);
+	}
+
+	/*
+	 * Font Library (see Theme Options -> Typography -> Font Library) —
+	 * the theme's ONLY font-selection mechanism (the old free-text
+	 * Body/Heading Font Family fields and the URL-paste Google Fonts
+	 * picker were removed per explicit user request). --hex-font-heading
+	 * and --hex-font-body are also what drives bare body/h1-h6 above
+	 * (@layer base) — these classes let you apply the same admin-picked
+	 * font to any OTHER element too, and .hex-font-accent/.hex-font-mono
+	 * have no automatic element they apply to, so a class is the only
+	 * way to use them. Each has its own flat-fallback default so the
+	 * class works even before any Font Library slot has ever been saved.
+	 *
+	 * Prefixed "hex-" (not plain .font-mono/.font-heading/etc.)
+	 * deliberately: Tailwind v4 auto-generates its OWN .font-mono
+	 * utility (font-family: var(--font-mono), its default monospace
+	 * stack) in @layer utilities, which always wins the cascade over
+	 * @layer components regardless of source order — an unprefixed
+	 * .font-mono here would be silently overridden by Tailwind's own,
+	 * confirmed live (a saved Mono Font selection had no visible
+	 * effect). Prefixing all four keeps them out of Tailwind's own
+	 * utility namespace entirely, not just the one that happened to
+	 * collide.
+	 */
+	.hex-font-heading {
+		font-family: var(--hex-font-heading, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+	}
+
+	.hex-font-body {
+		font-family: var(--hex-font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+	}
+
+	.hex-font-accent {
+		font-family: var(--hex-font-accent, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+	}
+
+	.hex-font-mono {
+		font-family: var(--hex-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
 	}
 }

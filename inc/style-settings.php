@@ -215,34 +215,49 @@ function hex_get_style_schema() {
 		}
 	}
 
-	$schema['body_font_family']    = array(
-		'group'    => 'typography',
-		'subgroup' => __( 'Fonts & Links', 'hex' ),
-		'type'     => 'font',
-		'default'  => "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-		'label'    => __( 'Body Font Family', 'hex' ),
-	);
-	$schema['heading_font_family'] = array(
-		'group'    => 'typography',
-		'subgroup' => __( 'Fonts & Links', 'hex' ),
-		'type'     => 'font',
-		'default'  => "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-		'label'    => __( 'Heading Font Family', 'hex' ),
-	);
-	$schema['link_color']          = array(
+	$schema['link_color']       = array(
 		'group'    => 'typography',
 		'subgroup' => __( 'Fonts & Links', 'hex' ),
 		'type'     => 'color',
 		'default'  => '#2563eb',
 		'label'    => __( 'Link Color', 'hex' ),
 	);
-	$schema['link_hover_color']    = array(
+	$schema['link_hover_color'] = array(
 		'group'    => 'typography',
 		'subgroup' => __( 'Fonts & Links', 'hex' ),
 		'type'     => 'color',
 		'default'  => '#1d4ed8',
 		'label'    => __( 'Link Hover Color', 'hex' ),
 	);
+
+	/*
+	 * Font Library: four dropdown-only font slots, each a <select> of
+	 * hex_get_common_google_fonts() (see inc/google-fonts.php) rather
+	 * than free text -- picking one sets --hex-font-{slot}. Heading and
+	 * Body drive bare h1-h6/body site-wide (site-theme.css's @layer
+	 * base), same as the old free-text body_font_family/heading_font_family
+	 * fields used to; Accent and Mono are opt-in via their own
+	 * .hex-font-{slot} class. This is now the SOLE font-selection
+	 * mechanism -- the free-text fields and the URL-paste Google Fonts
+	 * picker were removed per explicit user request ("keep only that
+	 * option and remove all other font options") once this dropdown
+	 * covered the same need with no risk of a typo'd/unloaded font name.
+	 */
+	$font_library_slots = array(
+		'font_heading' => __( 'Heading Font (.hex-font-heading)', 'hex' ),
+		'font_body'    => __( 'Body Font (.hex-font-body)', 'hex' ),
+		'font_accent'  => __( 'Accent Font (.hex-font-accent)', 'hex' ),
+		'font_mono'    => __( 'Mono Font (.hex-font-mono)', 'hex' ),
+	);
+	foreach ( $font_library_slots as $key => $label ) {
+		$schema[ $key ] = array(
+			'group'    => 'typography',
+			'subgroup' => __( 'Font Library', 'hex' ),
+			'type'     => 'google_font',
+			'default'  => '',
+			'label'    => $label,
+		);
+	}
 
 	// Spacing.
 	$spacing_defaults = array(
@@ -1129,14 +1144,25 @@ function hex_build_fluid_clamp( $mobile, $desktop, $mobile_bp, $desktop_bp ) {
  * request; see knoladge/fluid-typography-clamp.md). Pure function: no
  * I/O.
  *
+ * Declarations are grouped under a `/* Group Label *\/` comment per
+ * schema group (Typography, Spacing, Colors, ...), in
+ * hex_get_style_groups()'s canonical order, with a blank line between
+ * groups — added per explicit user request ("add comments to theme
+ * options and separate them in code") after a flat, ~190-line
+ * uncommented file made it hard to find a given field by eye. A field
+ * with no recognized group (shouldn't happen for real schema entries —
+ * see hex_get_style_schema()/hex_merge_style_schema_with_tokens() —
+ * but defensively handled so nothing is ever silently dropped) falls
+ * under "Custom Tokens", same as an auto-detected token.
+ *
  * @param array<string,string> $tokens Key => value, e.g. hex_get_effective_style_values() merged with submitted overrides.
  * @param array<string,array>  $schema Effective schema, e.g. hex_get_effective_style_schema().
  * @return string Full CSS file contents, including the ":root {}" block.
  */
 function hex_build_style_tokens_css( array $tokens, array $schema ) {
-	$shadows      = hex_get_shadow_presets();
-	$fluid_pairs  = hex_get_fluid_size_pairs();
-	$declarations = array();
+	$shadows               = hex_get_shadow_presets();
+	$fluid_pairs           = hex_get_fluid_size_pairs();
+	$declarations_by_group = array();
 
 	foreach ( $tokens as $key => $value ) {
 		if ( isset( $fluid_pairs[ $key ] ) ) {
@@ -1145,37 +1171,33 @@ function hex_build_style_tokens_css( array $tokens, array $schema ) {
 			continue;
 		}
 
-		$type = isset( $schema[ $key ]['type'] ) ? $schema[ $key ]['type'] : 'length';
+		$type  = isset( $schema[ $key ]['type'] ) ? $schema[ $key ]['type'] : 'length';
+		$group = isset( $schema[ $key ]['group'] ) ? $schema[ $key ]['group'] : 'custom';
+		$line  = null;
 
 		if ( 'shadow' === $type ) {
-			if ( ! array_key_exists( $value, $shadows ) ) {
-				continue;
+			if ( array_key_exists( $value, $shadows ) ) {
+				$line = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $shadows[ $value ] );
 			}
-			$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $shadows[ $value ] );
-			continue;
-		}
-
-		if ( 'font' === $type ) {
-			if ( ! hex_is_safe_font_value( $value ) ) {
-				continue;
+		} elseif ( 'font' === $type || 'google_font' === $type ) {
+			// A Font Library slot's default is '' (no selection) --
+			// hex_is_safe_font_value() rejects '', so this also correctly
+			// skips emitting an unset slot's variable at all, leaving its
+			// .hex-font-{slot} class's own CSS-level fallback in charge.
+			if ( hex_is_safe_font_value( $value ) ) {
+				$line = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
 			}
-			$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
-			continue;
-		}
-
-		if ( 'custom' === $type ) {
-			if ( null === hex_sanitize_style_custom( $value ) ) {
-				continue;
+		} elseif ( 'custom' === $type ) {
+			if ( null !== hex_sanitize_style_custom( $value ) ) {
+				$line = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
 			}
-			$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
-			continue;
+		} elseif ( hex_is_safe_style_value( $value ) ) {
+			$line = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
 		}
 
-		if ( ! hex_is_safe_style_value( $value ) ) {
-			continue;
+		if ( null !== $line ) {
+			$declarations_by_group[ $group ][] = $line;
 		}
-
-		$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $key ), $value );
 	}
 
 	foreach ( $fluid_pairs as $output_key => $pair ) {
@@ -1185,12 +1207,35 @@ function hex_build_style_tokens_css( array $tokens, array $schema ) {
 			continue;
 		}
 
-		$declarations[] = sprintf( "\t%s: %s;", hex_style_css_var_name( $output_key ), $tokens[ $desktop_key ] );
+		// A derived size (e.g. --hex-h1-size) belongs with the rest of its
+		// own field family -- same group as its own "-desktop" schema entry.
+		$group = isset( $schema[ $desktop_key ]['group'] ) ? $schema[ $desktop_key ]['group'] : 'typography';
+
+		$declarations_by_group[ $group ][] = sprintf( "\t%s: %s;", hex_style_css_var_name( $output_key ), $tokens[ $desktop_key ] );
+	}
+
+	$groups           = hex_get_style_groups();
+	$groups['custom'] = __( 'Custom Tokens', 'hex' );
+
+	// Defensive: any group that isn't one of the canonical ones above still
+	// gets its own section (appended after) rather than silently dropped.
+	foreach ( array_keys( $declarations_by_group ) as $group_key ) {
+		if ( ! isset( $groups[ $group_key ] ) ) {
+			$groups[ $group_key ] = hex_style_humanize_key( $group_key );
+		}
+	}
+
+	$sections = array();
+	foreach ( $groups as $group_key => $label ) {
+		if ( empty( $declarations_by_group[ $group_key ] ) ) {
+			continue;
+		}
+		$sections[] = sprintf( "\t/* %s. */\n%s", $label, implode( "\n", $declarations_by_group[ $group_key ] ) );
 	}
 
 	return sprintf(
-		"/**\n * Hexnity WP Theme Options — design tokens.\n *\n * Managed by the Theme Options admin page, which fully regenerates\n * this file on every save. You can also hand-edit it or add new\n * \"--hex-*\" custom properties yourself — anything new here is\n * auto-detected on the next Theme Options page load and appears as\n * an editable field under \"Custom Tokens\". Reference a token from\n * your own CSS as var(--hex-your-key, fallback).\n *\n * See knoladge/child-theme-css-token-architecture.md.\n */\n:root {\n%s\n}\n",
-		implode( "\n", $declarations )
+		"/**\n * Hexnity WP Theme Options — design tokens.\n *\n * Managed by the Theme Options admin page, which fully regenerates\n * this file on every save. You can also hand-edit it or add new\n * \"--hex-*\" custom properties yourself — anything new here is\n * auto-detected on the next Theme Options page load and appears as\n * an editable field under \"Custom Tokens\". Reference a token from\n * your own CSS as var(--hex-your-key, fallback).\n *\n * Grouped into commented sections below (Typography, Spacing, ...) —\n * hand-edits keep whatever section you put them in; a section with\n * zero declarations is simply omitted, and reappears once it has one.\n *\n * See knoladge/child-theme-css-token-architecture.md.\n */\n:root {\n%s\n}\n",
+		implode( "\n\n", $sections )
 	);
 }
 
@@ -1202,12 +1247,11 @@ function hex_build_style_tokens_css( array $tokens, array $schema ) {
  * Note: every var(--hex-key, default) usage's CSS-level fallback only
  * exists at all if some site-theme.css is compiled and enqueued
  * somewhere — that file (and every design-system class it defines)
- * now lives in the active child theme, not this parent theme, per
- * explicit user request (see
- * knoladge/child-theme-css-token-architecture.md). This parent theme
- * alone, with no child theme active, therefore renders with NO
- * design-system component styling at all — an intentional trade-off,
- * not an oversight.
+ * lives and is built in this parent theme's own assets/css/src/
+ * (see knoladge/child-theme-css-token-architecture.md for the full
+ * history: it briefly moved to the active child theme, then moved
+ * back). This parent theme, with no child theme active, therefore
+ * renders with full design-system component styling — self-sufficient.
  *
  * @return void
  */
@@ -1327,6 +1371,31 @@ function hex_sanitize_style_font( $value ) {
 }
 
 /**
+ * Sanitize a Font Library slot (font_heading/_body/_accent/_mono) —
+ * the admin picks from a <select>, so unlike hex_sanitize_style_font()
+ * above (any safe-charset string) this must exactly match one of
+ * hex_get_common_google_fonts()'s font-family stacks, or be empty (no
+ * selection, a deliberately valid choice — the field's own
+ * .font-{slot} class already has a CSS-level fallback for that case).
+ *
+ * @param string $value Raw submitted value.
+ * @return string|null Sanitized value, or null if invalid.
+ */
+function hex_sanitize_style_google_font_slot( $value ) {
+	$value = trim( (string) $value );
+
+	if ( '' === $value ) {
+		return '';
+	}
+
+	if ( null !== hex_get_google_font_by_stack( $value ) ) {
+		return $value;
+	}
+
+	return null;
+}
+
+/**
  * Sanitize a generic "custom" token value — an auto-detected field
  * whose real shape we don't know, so this is deliberately narrower
  * than a "just about any CSS value" charset: no ":" at all (kills
@@ -1400,13 +1469,14 @@ function hex_sanitize_submitted_style_tokens( array $submitted, array $schema, a
  */
 function hex_style_sanitize_callback_for_type( $type ) {
 	$callbacks = array(
-		'length' => 'hex_sanitize_style_length',
-		'number' => 'hex_sanitize_style_number',
-		'color'  => 'hex_sanitize_style_color',
-		'weight' => 'hex_sanitize_style_weight',
-		'shadow' => 'hex_sanitize_style_shadow',
-		'font'   => 'hex_sanitize_style_font',
-		'custom' => 'hex_sanitize_style_custom',
+		'length'      => 'hex_sanitize_style_length',
+		'number'      => 'hex_sanitize_style_number',
+		'color'       => 'hex_sanitize_style_color',
+		'weight'      => 'hex_sanitize_style_weight',
+		'shadow'      => 'hex_sanitize_style_shadow',
+		'font'        => 'hex_sanitize_style_font',
+		'google_font' => 'hex_sanitize_style_google_font_slot',
+		'custom'      => 'hex_sanitize_style_custom',
 	);
 
 	return isset( $callbacks[ $type ] ) ? $callbacks[ $type ] : 'hex_sanitize_style_length';

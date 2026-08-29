@@ -308,9 +308,10 @@ function hex_render_child_activation_key_field() {
 /**
  * Generic field renderer for every Theme Options field — a paired
  * color-swatch + text input for 'color', a <select> of 100-900 for
- * 'weight', a <select> of shadow presets for 'shadow', a plain text
- * input for 'font'/'length'/'number'/'custom' (differing only in
- * placeholder hint).
+ * 'weight', a <select> of shadow presets for 'shadow', a <select> of
+ * hex_get_common_google_fonts() (grouped by category) for
+ * 'google_font', a plain text input for 'font'/'length'/'number'/
+ * 'custom' (differing only in placeholder hint).
  *
  * @param array $args Field args: 'key' (schema key) and 'type'.
  * @return void
@@ -360,11 +361,37 @@ function hex_render_style_field( $args ) {
 
 		case 'font':
 			printf(
-				'<input type="text" id="%1$s" name="%1$s" value="%2$s" class="%3$s" list="hex-google-fonts-list" placeholder="e.g. Georgia, serif or a Google Font name">',
+				'<input type="text" id="%1$s" name="%1$s" value="%2$s" class="%3$s" placeholder="e.g. Georgia, serif or a Google Font name">',
 				esc_attr( $option_name ),
 				esc_attr( $value ),
 				esc_attr( $field_class )
 			);
+			break;
+
+		case 'google_font':
+			$fonts   = hex_get_common_google_fonts();
+			$grouped = array();
+			foreach ( $fonts as $font ) {
+				$grouped[ $font['category'] ][] = $font;
+			}
+
+			$selected_value = hex_resolve_google_font_field_selection( $value );
+
+			echo '<select id="' . esc_attr( $option_name ) . '" name="' . esc_attr( $option_name ) . '" class="' . esc_attr( $field_class ) . '">';
+			printf( '<option value=""%1$s>%2$s</option>', selected( $selected_value, '', false ), esc_html__( '— Use Default —', 'hex' ) );
+			foreach ( $grouped as $category => $category_fonts ) {
+				printf( '<optgroup label="%s">', esc_attr( $category ) );
+				foreach ( $category_fonts as $font ) {
+					printf(
+						'<option value="%1$s"%2$s>%3$s</option>',
+						esc_attr( $font['stack'] ),
+						selected( $selected_value, $font['stack'], false ),
+						esc_html( $font['name'] )
+					);
+				}
+				echo '</optgroup>';
+			}
+			echo '</select>';
 			break;
 
 		default: // length, number, custom.
@@ -477,67 +504,3 @@ function hex_render_style_group_fields( $group ) {
 	}
 }
 
-/**
- * Render the "Google Fonts" repeater (one embed link/URL per row, or
- * the whole snippet from fonts.google.com pasted into a single row)
- * at the top of the Typography panel, plus a chip list of the
- * families it currently resolves to — so every 'font'-type field's
- * searchable picker (see hex_render_google_fonts_datalist()) has
- * something to offer beyond whatever the admin types by hand.
- *
- * The repeater rows are a client-side convenience only
- * (assets/js/admin.js keeps them synced into a single hidden field on
- * every change, live-updating the shared datalist and the chip list
- * as it goes) — the field actually submitted is still the same
- * newline-joined "hex_google_fonts_urls" string
- * hex_sanitize_google_fonts_urls() has always expected, so storage
- * and sanitizing are unchanged.
- *
- * @return void
- */
-function hex_render_google_fonts_field() {
-	$families = hex_get_google_font_families();
-	$urls     = hex_get_google_fonts_urls();
-
-	if ( ! $urls ) {
-		$urls = array( '' );
-	}
-	?>
-	<div class="border-b border-gray-800 px-6 py-5" data-hex-google-fonts>
-		<label class="hex-label"><?php esc_html_e( 'Google Fonts', 'hex' ); ?></label>
-		<p class="mb-2 text-sm text-gray-400!">
-			<?php esc_html_e( 'Paste a Google Fonts embed link from fonts.google.com into each row below (the whole snippet is fine, or just the stylesheet URL) — every family found is added to the font pickers below as you type, no API key needed.', 'hex' ); ?>
-		</p>
-
-		<div class="space-y-2" data-hex-google-fonts-rows>
-			<?php foreach ( $urls as $url ) : ?>
-				<div class="hex-google-fonts-row flex items-center gap-2">
-					<input
-						type="text"
-						class="hex-field font-mono text-xs"
-						value="<?php echo esc_attr( $url ); ?>"
-						placeholder="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;display=swap"
-						data-hex-google-fonts-url
-					>
-					<button type="button" class="hex-btn hex-btn-secondary shrink-0 px-3!" data-hex-remove-font-row aria-label="<?php esc_attr_e( 'Remove font', 'hex' ); ?>">&times;</button>
-				</div>
-			<?php endforeach; ?>
-		</div>
-
-		<button type="button" class="hex-btn hex-btn-secondary mt-3" data-hex-add-font-row>
-			+ <?php esc_html_e( 'Add Font', 'hex' ); ?>
-		</button>
-
-		<textarea id="hex_google_fonts_urls" name="hex_google_fonts_urls" class="hidden" data-hex-google-fonts-hidden><?php echo esc_textarea( get_option( 'hex_google_fonts_urls', '' ) ); ?></textarea>
-
-		<div class="mt-3 flex flex-wrap gap-1.5" data-hex-google-fonts-chips>
-			<?php foreach ( $families as $family ) : ?>
-				<span class="rounded-full bg-indigo-500/10 px-2.5 py-1 text-xs font-medium text-indigo-300!"><?php echo esc_html( $family ); ?></span>
-			<?php endforeach; ?>
-		</div>
-		<p class="mt-2 text-xs text-gray-500! <?php echo $families ? 'hidden' : ''; ?>" data-hex-google-fonts-empty>
-			<?php esc_html_e( 'No Google Fonts added yet — the font fields below just take whatever you type, e.g. a system font stack.', 'hex' ); ?>
-		</p>
-	</div>
-	<?php
-}

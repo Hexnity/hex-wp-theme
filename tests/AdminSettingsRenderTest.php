@@ -12,6 +12,7 @@ use WP_Mock\Tools\TestCase;
 /**
  * @covers ::hex_render_style_group_fields
  * @covers ::hex_render_style_fields
+ * @covers ::hex_render_style_field
  */
 class AdminSettingsRenderTest extends TestCase {
 
@@ -26,6 +27,9 @@ class AdminSettingsRenderTest extends TestCase {
 		WP_Mock::userFunction( 'is_child_theme' )->andReturn( false );
 		WP_Mock::userFunction( 'esc_attr' )->andReturnUsing( fn( $v ) => $v );
 		WP_Mock::userFunction( 'esc_html' )->andReturnUsing( fn( $v ) => $v );
+		WP_Mock::userFunction( 'selected' )->andReturnUsing(
+			fn( $selected, $current = true, $echo = true ) => ( (string) $selected === (string) $current ) ? ' selected="selected"' : ''
+		);
 	}
 
 	public function test_a_group_with_no_subgroups_renders_flat_with_no_accordion() {
@@ -66,5 +70,41 @@ class AdminSettingsRenderTest extends TestCase {
 		$primary_position = strpos( $output, '<span>Primary</span>' );
 
 		$this->assertLessThan( $primary_position, $open_position, 'The open <details> tag should be the one immediately preceding the Primary summary.' );
+	}
+
+	public function test_typography_group_renders_a_font_library_accordion_with_four_selects() {
+		$this->mock_wp_helpers();
+
+		ob_start();
+		hex_render_style_group_fields( 'typography' );
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<span>Font Library</span>', $output );
+
+		foreach ( array( 'font_heading', 'font_body', 'font_accent', 'font_mono' ) as $key ) {
+			$field_name = 'hex_style_' . $key;
+			$this->assertStringContainsString( '<select id="' . $field_name . '" name="' . $field_name . '"', $output );
+		}
+
+		$this->assertStringContainsString( '<optgroup label="Sans Serif">', $output );
+		$this->assertStringContainsString( '<optgroup label="Serif">', $output );
+		$this->assertStringContainsString( '<optgroup label="Monospace">', $output );
+		$this->assertStringContainsString( '<optgroup label="Display">', $output );
+		$this->assertStringContainsString( "<option value=\"'Inter', sans-serif\"", $output );
+	}
+
+	public function test_font_library_select_defaults_to_the_use_default_option_selected() {
+		$this->mock_wp_helpers();
+
+		ob_start();
+		hex_render_style_field(
+			array(
+				'key'  => 'font_heading',
+				'type' => 'google_font',
+			)
+		);
+		$output = ob_get_clean();
+
+		$this->assertStringContainsString( '<option value="" selected="selected">', $output );
 	}
 }
